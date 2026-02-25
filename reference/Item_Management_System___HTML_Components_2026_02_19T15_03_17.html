@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Management System - UI Components</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            color: #374151;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .ui-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 40px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .required::after {
+            content: " *";
+            color: #ef4444;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: white;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        /* Radio Button Styles */
+        .radio-group {
+            display: flex;
+            gap: 24px;
+            margin-top: 12px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        .radio-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        /* Button Styles */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-cancel:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* Table Styles */
+        .search-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 40px;
+            font-size: 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+        .search-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f9fafb;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background-color: #f3f4f6;
+        }
+
+        .sort-indicator {
+            margin-left: 4px;
+            font-size: 10px;
+        }
+
+        td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tbody tr:hover {
+            background-color: #eff6ff;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .status-yes {
+            color: #f59e0b;
+            font-weight: 500;
+        }
+
+        .status-no {
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .results-count {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .page-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            color: #6b7280;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background-color: #f3f4f6;
+        }
+
+        .page-btn.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- UI Component 1: Add Item Form -->
+        <div class="ui-section">
+            <h2 class="section-title">Add New Item</h2>
+            <form id="addItemForm">
+                <div class="form-group">
+                    <label for="itemName" class="required">Item Name</label>
+                    <input type="text" id="itemName" name="itemName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="itemId" class="required">Item ID</label>
+                    <input type="text" id="itemId" name="itemId" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category" class="required">Category</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="music">Music</option>
+                        <option value="sports">Sports</option>
+                        <option value="games">Games</option>
+                        <option value="science">Science</option>
+                        <option value="technology">Technology</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="plays">Plays</label>
+                    <input type="number" id="plays" name="plays" value="0" min="0">
+                    <div class="helper-text">Numeric value</div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- UI Component 2: Check Out/In Form -->
+        <div class="ui-section">
+            <h2 class="section-title">Update Checkout Status</h2>
+            <form id="checkoutForm">
+                <div class="form-group">
+                    <label for="checkoutItemId" class="required">Item ID</label>
+                    <input type="text" id="checkoutItemId" name="checkoutItemId" required>
+                    <div class="helper-text">Enter item ID to update</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="required">Checked Out</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="checkedOutYes" name="checkedOut" value="yes">
+                            <label for="checkedOutYes">Yes</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="checkedOutNo" name="checkedOut" value="no" checked>
+                            <label for="checkedOutNo">No</label>
+                        </div>
+                    </div>
+                    <div class="helper-text" style="margin-top: 12px;">
+                        Yes = Item is currently checked out<br>
+                        No = Item is available
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- UI Component 3: Searchable Items Table -->
+        <div class="ui-section">
+            <h2 class="section-title">Item Inventory</h2>
+            
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Search by name, ID, or category...">
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name <span class="sort-indicator">▲</span></th>
+                            <th>Item ID</th>
+                            <th>Category</th>
+                            <th>Plays</th>
+                            <th>Checked Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Guitar</td>
+                            <td>ITM-001</td>
+                            <td>Music</td>
+                            <td>150</td>
+                            <td><span class="status-no">No</span></td>
+                        </tr>
+                        <tr>
+                            <td>Basketball</td>
+                            <td>ITM-002</td>
+                            <td>Sports</td>
+                            <td>89</td>
+                            <td><span class="status-yes">Yes</span></td>
+                        </tr>
+                        <tr>
+                            <td>Chess Set</td>
+                            <td>ITM-003</td>
+                            <td>Games</td>
+                            <td>45</td>
+                            <td><span class="status-no">No</span></td>
+                        </tr>
+                        <tr>
+                            <td>Telescope</td>
+                            <td>ITM-004</td>
+                            <td>Science</td>
+                            <td>12</td>
+                            <td><span class="status-no">No</span></td>
+                        </tr>
+                        <tr>
+                            <td>Drone</td>
+                            <td>ITM-005</td>
+                            <td>Technology</td>
+                            <td>67</td>
+                            <td><span class="status-yes">Yes</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <div class="results-count">Showing 1-5 of 47 items</div>
+                <div class="pagination">
+                    <button class="page-btn" disabled>◄</button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">4</button>
+                    <button class="page-btn">5</button>
+                    <button class="page-btn">►</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Basic form handling examples
+        document.getElementById('addItemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Item added successfully!');
+        });
+
+        document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Checkout status updated!');
+        });
+
+        // Table sorting example
+        document.querySelectorAll('th').forEach(header => {
+            header.addEventListener('click', function() {
+                alert('Sorting by: ' + this.textContent.trim());
+            });
+        });
+
+        // Search functionality example
+        document.querySelector('.search-input').addEventListener('input', function(e) {
+            console.log('Searching for:', e.target.value);
+        });
+    </script>
+</body>
+</html>
+
