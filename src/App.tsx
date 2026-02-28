@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import {
   BrowserRouter,
@@ -13,6 +12,7 @@ import {
 } from "react-router-dom";
 
 import { getItems, setCheckedOut, nextItemId, upsertItem, setItems, clearItems, type Item } from "./lib/storage";
+import { fileToResizedJpegDataUrl, videoFrameToResizedJpegDataUrl } from "./utils/image";
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
@@ -198,6 +198,7 @@ function InventoryList() {
           <table>
             <thead>
               <tr>
+                <th>Photo</th>
                 <th>Item ID</th>
                 <th>Item Name</th>
                 <th>Category</th>
@@ -211,6 +212,19 @@ function InventoryList() {
                   onClick={() => navigate(`/item/${encodeURIComponent(it.id)}`)}
                   style={{ cursor: "pointer" }}
                 >
+                  <td>
+                    {it.imageDataUrl ? (
+                      <img
+                        className="thumb-44"
+                        src={it.imageDataUrl}
+                        alt={`${it.name} thumbnail`}
+                      />
+                    ) : (
+                      <div className="thumb-44 thumb-placeholder" aria-label="No photo">
+                        No
+                      </div>
+                    )}
+                  </td>
                   <td>{it.id}</td>
                   <td>{it.name}</td>
                   <td>{it.category}</td>
@@ -229,20 +243,136 @@ function AddItem() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Typewriters");
-const [itemLocation, setItemLocation] = useState("");
+  const [itemLocation, setItemLocation] = useState("");
   const [condition, setCondition] = useState<"Excellent" | "Good" | "Fair" | "Needs Repair">("Good");
   const [error, setError] = useState<string>("");
+  const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState<string>("");
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
   // NEW: saving state + timeout ref
   const [isSaving, setIsSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    const stopCameraStream = () => {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
+      }
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = null;
+      }
+    };
+
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
+      stopCameraStream();
     };
   }, []);
+
+  const stopCameraStream = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null;
+    }
+  };
+
+  const handleStartCamera = async () => {
+    setImageError("");
+    setIsStartingCamera(true);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setImageError("Camera is not available on this device.");
+      setIsStartingCamera(false);
+      return;
+    }
+
+    try {
+      stopCameraStream();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setIsCameraOpen(true);
+
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play();
+      }
+    } catch (cameraError: any) {
+      const message =
+        cameraError?.name === "NotAllowedError"
+          ? "Camera permission was denied."
+          : "Unable to access camera.";
+      setImageError(message);
+      stopCameraStream();
+      setIsCameraOpen(false);
+    } finally {
+      setIsStartingCamera(false);
+    }
+  };
+
+  const handleCancelCamera = () => {
+    stopCameraStream();
+    setIsCameraOpen(false);
+    setIsStartingCamera(false);
+  };
+
+  const handleCaptureFromCamera = async () => {
+    if (!cameraVideoRef.current) {
+      setImageError("Camera is not ready.");
+      return;
+    }
+
+    setImageError("");
+    setIsImageProcessing(true);
+    try {
+      const capturedImage = videoFrameToResizedJpegDataUrl(cameraVideoRef.current, {
+        maxDimension: 900,
+        quality: 0.8,
+      });
+      setImageDataUrl(capturedImage);
+      handleCancelCamera();
+    } catch (cameraError: any) {
+      setImageError(cameraError?.message ?? "Could not capture photo.");
+    } finally {
+      setIsImageProcessing(false);
+    }
+  };
+
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setImageError("");
+    setIsImageProcessing(true);
+
+    try {
+      const resized = await fileToResizedJpegDataUrl(file, { maxDimension: 900, quality: 0.8 });
+      setImageDataUrl(resized);
+    } catch (photoError: any) {
+      setImageError(photoError?.message ?? "Could not process this image.");
+    } finally {
+      setIsImageProcessing(false);
+      input.value = "";
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setImageDataUrl(undefined);
+    setImageError("");
+  };
 
   const handleSave = () => {
     setError("");
@@ -267,6 +397,7 @@ const [itemLocation, setItemLocation] = useState("");
         category,
         location: itemLocation.trim() || undefined,
         condition,
+        imageDataUrl,
         checkedOut: false,
         updatedAt: Date.now(),
       });
@@ -323,6 +454,63 @@ const [itemLocation, setItemLocation] = useState("");
           </select>
         </div>
 
+        <div className="form-section">
+          <label>Take photo (optional)</label>
+          {!isCameraOpen ? (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleStartCamera}
+              disabled={isStartingCamera || isImageProcessing}
+            >
+              {isStartingCamera ? "Starting camera..." : "Take photo"}
+            </button>
+          ) : (
+            <div className="camera-wrap">
+              <video ref={cameraVideoRef} className="camera-preview" muted playsInline />
+              <div className="camera-actions">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleCaptureFromCamera}
+                  disabled={isImageProcessing}
+                >
+                  Capture
+                </button>
+                <button type="button" className="btn-cancel" onClick={handleCancelCamera}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {imageError && (
+            <div className="inline-error" style={{ marginTop: 8 }}>
+              {imageError}
+            </div>
+          )}
+        </div>
+
+        <div className="form-section">
+          <label>Upload from library (optional)</label>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoChange}
+          />
+          {isImageProcessing && (
+            <div className="helper-text">Processing image...</div>
+          )}
+          {imageDataUrl && (
+            <div className="thumb-preview-wrap">
+              <img className="thumb-preview" src={imageDataUrl} alt="Selected item photo" />
+              <button type="button" className="btn-cancel" onClick={handleRemovePhoto}>
+                Remove photo
+              </button>
+            </div>
+          )}
+        </div>
+
         {error && (
           <div className="ui-section" style={{ marginTop: 12 }}>
             {error}
@@ -330,7 +518,11 @@ const [itemLocation, setItemLocation] = useState("");
         )}
 
         <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-          <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+          <button
+            className="btn-primary"
+            onClick={handleSave}
+            disabled={isSaving || isImageProcessing || isStartingCamera || isCameraOpen}
+          >
             {isSaving ? "Saving..." : "Save Item"}
           </button>
           <button className="btn-cancel" onClick={() => navigate("/inventory")}>
@@ -361,14 +553,31 @@ function ItemDetail() {
   const [category, setCategory] = useState("Typewriters");
   const [location, setLocation] = useState("");
   const [condition, setCondition] = useState<"Excellent" | "Good" | "Fair" | "Needs Repair">("Good");
+  const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState<string>("");
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [error, setError] = useState<string>("");
   // NEW: saving + success states
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    const stopCameraStream = () => {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
+      }
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = null;
+      }
+    };
+
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
@@ -376,6 +585,7 @@ function ItemDetail() {
       if (successTimerRef.current) {
         clearTimeout(successTimerRef.current);
       }
+      stopCameraStream();
     };
   }, []);
 
@@ -386,6 +596,8 @@ function ItemDetail() {
     setCategory(item.category ?? "Typewriters");
     setLocation(item.location ?? "");
     setCondition((item.condition as any) ?? "Good");
+    setImageDataUrl(item.imageDataUrl);
+    setImageError("");
   }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!item) {
@@ -420,8 +632,107 @@ function ItemDetail() {
     normalizedName !== originalName ||
     category !== (item.category ?? "Typewriters") ||
     normalizedLocation !== originalLocation ||
-    condition !== ((item.condition as any) ?? "Good");
-  const isSaveDisabled = isSaving || !isNameValid || !hasChanges;
+    condition !== ((item.condition as any) ?? "Good") ||
+    imageDataUrl !== item.imageDataUrl;
+  const isSaveDisabled = isSaving || isImageProcessing || isCameraOpen || isStartingCamera || !isNameValid || !hasChanges;
+
+  const stopCameraStream = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null;
+    }
+  };
+
+  const handleStartCamera = async () => {
+    setImageError("");
+    setIsStartingCamera(true);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setImageError("Camera is not available on this device.");
+      setIsStartingCamera(false);
+      return;
+    }
+
+    try {
+      stopCameraStream();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setIsCameraOpen(true);
+
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play();
+      }
+    } catch (cameraError: any) {
+      const message =
+        cameraError?.name === "NotAllowedError"
+          ? "Camera permission was denied."
+          : "Unable to access camera.";
+      setImageError(message);
+      stopCameraStream();
+      setIsCameraOpen(false);
+    } finally {
+      setIsStartingCamera(false);
+    }
+  };
+
+  const handleCancelCamera = () => {
+    stopCameraStream();
+    setIsCameraOpen(false);
+    setIsStartingCamera(false);
+  };
+
+  const handleCaptureFromCamera = async () => {
+    if (!cameraVideoRef.current) {
+      setImageError("Camera is not ready.");
+      return;
+    }
+
+    setImageError("");
+    setIsImageProcessing(true);
+    try {
+      const capturedImage = videoFrameToResizedJpegDataUrl(cameraVideoRef.current, {
+        maxDimension: 900,
+        quality: 0.8,
+      });
+      setImageDataUrl(capturedImage);
+      handleCancelCamera();
+    } catch (cameraError: any) {
+      setImageError(cameraError?.message ?? "Could not capture photo.");
+    } finally {
+      setIsImageProcessing(false);
+    }
+  };
+
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setImageError("");
+    setIsImageProcessing(true);
+
+    try {
+      const resized = await fileToResizedJpegDataUrl(file, { maxDimension: 900, quality: 0.8 });
+      setImageDataUrl(resized);
+    } catch (photoError: any) {
+      setImageError(photoError?.message ?? "Could not process this image.");
+    } finally {
+      setIsImageProcessing(false);
+      input.value = "";
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setImageDataUrl(undefined);
+    setImageError("");
+  };
 
   const handleSaveEdits = () => {
     setError("");
@@ -442,6 +753,7 @@ function ItemDetail() {
         category,
         location: normalizedLocation || undefined,
         condition,
+        imageDataUrl,
         updatedAt: Date.now(),
       });
 
@@ -461,11 +773,14 @@ function ItemDetail() {
   };
 
   const handleCancelEdits = () => {
+    handleCancelCamera();
     // revert fields
     setName(item.name ?? "");
     setCategory(item.category ?? "Typewriters");
     setLocation(item.location ?? "");
     setCondition((item.condition as any) ?? "Good");
+    setImageDataUrl(item.imageDataUrl);
+    setImageError("");
     setError("");
     setIsEditing(false);
   };
@@ -492,6 +807,15 @@ function ItemDetail() {
 
         {!isEditing ? (
           <>
+            <div className="detail-photo-block">
+              {item.imageDataUrl ? (
+                <img className="thumb-preview" src={item.imageDataUrl} alt={`${item.name} photo`} />
+              ) : (
+                <div className="thumb-preview thumb-placeholder" aria-label="No photo">
+                  No photo
+                </div>
+              )}
+            </div>
             <p><strong>Category:</strong> {item.category}</p>
             <p><strong>Location:</strong> {item.location}</p>
             <p><strong>Condition:</strong> {item.condition}</p>
@@ -539,6 +863,63 @@ function ItemDetail() {
                 <option value="Fair">Fair</option>
                 <option value="Needs Repair">Needs Repair</option>
               </select>
+            </div>
+
+            <div className="form-section">
+              <label>Take photo (optional)</label>
+              {!isCameraOpen ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleStartCamera}
+                  disabled={isStartingCamera || isImageProcessing}
+                >
+                  {isStartingCamera ? "Starting camera..." : "Take photo"}
+                </button>
+              ) : (
+                <div className="camera-wrap">
+                  <video ref={cameraVideoRef} className="camera-preview" muted playsInline />
+                  <div className="camera-actions">
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleCaptureFromCamera}
+                      disabled={isImageProcessing}
+                    >
+                      Capture
+                    </button>
+                    <button type="button" className="btn-cancel" onClick={handleCancelCamera}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {imageError && (
+                <div className="inline-error" style={{ marginTop: 8 }}>
+                  {imageError}
+                </div>
+              )}
+            </div>
+
+            <div className="form-section">
+              <label>Upload from library (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+              />
+              {isImageProcessing && (
+                <div className="helper-text">Processing image...</div>
+              )}
+              {imageDataUrl && (
+                <div className="thumb-preview-wrap">
+                  <img className="thumb-preview" src={imageDataUrl} alt="Selected item photo" />
+                  <button type="button" className="btn-cancel" onClick={handleRemovePhoto}>
+                    Remove photo
+                  </button>
+                </div>
+              )}
             </div>
 
             {error && (
@@ -623,7 +1004,7 @@ function Scan() {
       const controls = await reader.decodeFromConstraints(
         constraints,
         videoEl,
-        (result, err, _controls) => {
+        (result) => {
           if (result) {
             const raw = result.getText().trim();
 

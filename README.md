@@ -81,3 +81,4 @@ VITE_DEMO_MODE=true npm run dev
 ```
 
 Demo mode stores changes only in `localStorage` and is not permanent.
+Deployed demo prototype.

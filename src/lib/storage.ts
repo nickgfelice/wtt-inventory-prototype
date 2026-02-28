@@ -5,6 +5,8 @@ export type Item = {
   location?: string;
   condition?: "Excellent" | "Good" | "Fair" | "Needs Repair";
   checkedOut: boolean;
+  borrower?: string;
+  dueDate?: string; // ISO date string: YYYY-MM-DD
   updatedAt: number;
 };
 
@@ -72,21 +74,4 @@ export function setCheckedOut(id: string, checkedOut: boolean) {
 
   items[idx] = { ...items[idx], checkedOut, updatedAt: Date.now() };
   writeJSON(STORAGE_KEY, items);
-}
-
-// NEW: replace all items (used for demo mode controls)
-export function setItems(items: Item[]) {
-  writeJSON(STORAGE_KEY, items);
-  const maxId = items.reduce((max, item) => {
-    const match = item.id.match(/(\d+)$/);
-    const numeric = match ? parseInt(match[1], 10) : 0;
-    return Math.max(max, numeric);
-  }, 0);
-  localStorage.setItem(COUNTER_KEY, String(maxId));
-}
-
-// NEW: clear all items (used for demo mode controls)
-export function clearItems() {
-  writeJSON(STORAGE_KEY, []);
-  localStorage.setItem(COUNTER_KEY, "0");
 }
