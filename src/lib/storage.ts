@@ -1,77 +1,96 @@
 export type Item = {
-  id: string;            // e.g., WTT-000001
+  id: string;
   name: string;
   category: string;
   location?: string;
-  condition?: "Excellent" | "Good" | "Fair" | "Needs Repair";
+  condition: string;
   checkedOut: boolean;
-  borrower?: string;
-  dueDate?: string; // ISO date string: YYYY-MM-DD
+  checkedOutTo?: string;
+  dueBack?: string;
+  notes?: string;
+  imageDataUrl?: string;
   updatedAt: number;
 };
 
-const STORAGE_KEY = "wtt_items_v1";
-const COUNTER_KEY = "wtt_item_counter_v1";
+const STORAGE_KEY = "wtt-items";
 
-function readJSON<T>(key: string, fallback: T): T {
+export function getItems(): Item[] {
+  if (typeof localStorage === "undefined") return [];
+
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
+
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    return JSON.parse(raw) as Item[];
   } catch {
-    return fallback;
+    return [];
   }
 }
 
-function writeJSON<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
+export function setItems(items: Item[]): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-export function seedIfEmpty() {
-  const items = readJSON<Item[]>(STORAGE_KEY, []);
-  if (items.length > 0) return;
-
-  const now = Date.now();
-  const seeded: Item[] = [
-    { id: "WTT-000001", name: "Vintage Typewriter", category: "Typewriters", location: "Aisle 1", condition: "Good", checkedOut: false, updatedAt: now },
-    { id: "WTT-000002", name: "Old Film Camera", category: "Cameras", location: "Aisle 2", condition: "Fair", checkedOut: true, updatedAt: now },
-    { id: "WTT-000003", name: "Brass Candelabra", category: "Set Pieces", location: "Aisle 3", condition: "Good", checkedOut: false, updatedAt: now },
-  ];
-
-  writeJSON(STORAGE_KEY, seeded);
-  localStorage.setItem(COUNTER_KEY, "3");
+export function clearItems(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
 }
 
-export function getItems(): Item[] {
-  return readJSON<Item[]>(STORAGE_KEY, []);
+export function upsertItem(item: Item): void {
+  const items = getItems();
+  const idx = items.findIndex((x) => x.id === item.id);
+
+  const nextItem = {
+    ...item,
+    updatedAt: Date.now(),
+  };
+
+  if (idx >= 0) {
+    items[idx] = nextItem;
+  } else {
+    items.push(nextItem);
+  }
+
+  setItems(items);
 }
 
-export function getItemById(id: string): Item | undefined {
-  return getItems().find((x) => x.id === id);
+export function setCheckedOut(
+  id: string,
+  checkedOut: boolean,
+  checkedOutTo?: string,
+  dueBack?: string
+): void {
+  const items = getItems().map((item) =>
+    item.id === id
+      ? {
+          ...item,
+          checkedOut,
+          checkedOutTo: checkedOut ? checkedOutTo : undefined,
+          dueBack: checkedOut ? dueBack : undefined,
+          updatedAt: Date.now(),
+        }
+      : item
+  );
+
+  setItems(items);
 }
 
 export function nextItemId(): string {
-  const current = parseInt(localStorage.getItem(COUNTER_KEY) ?? "0", 10) || 0;
-  const next = current + 1;
-  localStorage.setItem(COUNTER_KEY, String(next));
-  return `WTT-${String(next).padStart(6, "0")}`;
+  const items = getItems();
+
+  const maxNumericId = items.reduce((max, item) => {
+    const match = item.id.match(/WTT-(\d+)/);
+    const num = match ? Number(match[1]) : 0;
+    return Math.max(max, num);
+  }, 100000);
+
+  return `WTT-${String(maxNumericId + 1).padStart(6, "0")}`;
 }
 
-export function upsertItem(item: Item) {
-  const items = getItems();
-  const idx = items.findIndex((x) => x.id === item.id);
-  const updated = { ...item, updatedAt: Date.now() };
-
-  if (idx >= 0) items[idx] = updated;
-  else items.unshift(updated);
-
-  writeJSON(STORAGE_KEY, items);
-}
-
-export function setCheckedOut(id: string, checkedOut: boolean) {
-  const items = getItems();
-  const idx = items.findIndex((x) => x.id === id);
-  if (idx < 0) return;
-
-  items[idx] = { ...items[idx], checkedOut, updatedAt: Date.now() };
-  writeJSON(STORAGE_KEY, items);
+export function seedIfEmpty(seedItems: Item[] = []): void {
+  const existing = getItems();
+  if (existing.length === 0 && seedItems.length > 0) {
+    setItems(seedItems);
+  }
 }
