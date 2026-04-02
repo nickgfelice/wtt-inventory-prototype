@@ -1,96 +1,545 @@
-import { useMemo, useState } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import {
   BrowserRouter,
-  Routes,
-  Route,
-  NavLink,
   Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
   useNavigate,
   useParams,
-  useLocation,
 } from "react-router-dom";
 
-import { getItems, setCheckedOut, nextItemId, upsertItem, setItems, clearItems, type Item } from "./lib/storage";
+import {
+  addCategory,
+  addLocation,
+  clearItems,
+  deleteItem,
+  deleteCategory,
+  deleteLocation,
+  getCategories,
+  getItems,
+  getLocations,
+  nextItemId,
+  renameCategory,
+  renameLocation,
+  setCheckedOut,
+  setCheckedOutStatus,
+  setItems,
+  type Item,
+  upsertItem,
+} from "./lib/storage";
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+
+type OptionManagerKind = "category" | "location";
+
+type ManageActionResult =
+  | { ok: true; value: string }
+  | { ok: false; error: string };
 
 const getDemoItems = (): Item[] => {
   const now = Date.now();
   return [
-    { id: "WTT-000101", name: "Royal Quiet De Luxe", category: "Typewriters", location: "Aisle 1 / Shelf A", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 2 },
-    { id: "WTT-000102", name: "Underwood No. 5", category: "Typewriters", location: "Aisle 1 / Shelf B", condition: "Fair", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 24 },
-    { id: "WTT-000103", name: "Olympia SM9", category: "Typewriters", location: "Aisle 1 / Shelf C", condition: "Excellent", checkedOut: false, updatedAt: now - 1000 * 60 * 15 },
-    { id: "WTT-000104", name: "Canon AE-1", category: "Cameras", location: "Aisle 2 / Shelf A", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 6 },
-    { id: "WTT-000105", name: "Nikon FM2", category: "Cameras", location: "Aisle 2 / Shelf B", condition: "Good", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 48 },
-    { id: "WTT-000106", name: "Polaroid SX-70", category: "Cameras", location: "Aisle 2 / Shelf C", condition: "Fair", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 10 },
-    { id: "WTT-000107", name: "Victorian Writing Desk", category: "Furniture", location: "Bay 3", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 90 },
-    { id: "WTT-000108", name: "Oak Rolltop Desk", category: "Furniture", location: "Bay 3", condition: "Needs Repair", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 72 },
-    { id: "WTT-000109", name: "Art Deco Sideboard", category: "Furniture", location: "Bay 4", condition: "Good", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 30 },
-    { id: "WTT-000110", name: "Gaslight Street Lamp", category: "Set Pieces", location: "Back Lot", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 5 },
-    { id: "WTT-000111", name: "Library Book Wall", category: "Set Pieces", location: "Stage B", condition: "Excellent", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 12 },
-    { id: "WTT-000112", name: "Paris Cafe Table", category: "Set Pieces", location: "Stage C", condition: "Good", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 18 },
-    { id: "WTT-000113", name: "1940s Trench Coat", category: "Costumes", location: "Wardrobe 1", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 35 },
-    { id: "WTT-000114", name: "Victorian Gown", category: "Costumes", location: "Wardrobe 2", condition: "Fair", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 20 },
-    { id: "WTT-000115", name: "Pirate Captain Coat", category: "Costumes", location: "Wardrobe 3", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 8 },
-    { id: "WTT-000116", name: "Brass Telescope", category: "Props", location: "Props Cage A", condition: "Good", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 3 },
-    { id: "WTT-000117", name: "Antique Compass", category: "Props", location: "Props Cage B", condition: "Excellent", checkedOut: false, updatedAt: now - 1000 * 60 * 60 * 14 },
-    { id: "WTT-000118", name: "Leather Satchel", category: "Props", location: "Props Cage C", condition: "Good", checkedOut: true, updatedAt: now - 1000 * 60 * 60 * 40 },
+    {
+      id: "WTT-000101",
+      name: "Royal Quiet De Luxe",
+      category: "Typewriters",
+      location: "Aisle 1 / Shelf A",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 2,
+    },
+    {
+      id: "WTT-000102",
+      name: "Underwood No. 5",
+      category: "Typewriters",
+      location: "Aisle 1 / Shelf B",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 24,
+    },
+    {
+      id: "WTT-000103",
+      name: "Olympia SM9",
+      category: "Typewriters",
+      location: "Aisle 1 / Shelf C",
+      requiresTracking: true,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 15,
+    },
+    {
+      id: "WTT-000104",
+      name: "Canon AE-1",
+      category: "Cameras",
+      location: "Aisle 2 / Shelf A",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 6,
+    },
+    {
+      id: "WTT-000105",
+      name: "Nikon FM2",
+      category: "Cameras",
+      location: "Aisle 2 / Shelf B",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 48,
+    },
+    {
+      id: "WTT-000106",
+      name: "Polaroid SX-70",
+      category: "Cameras",
+      location: "Aisle 2 / Shelf C",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 10,
+    },
+    {
+      id: "WTT-000107",
+      name: "Victorian Writing Desk",
+      category: "Furniture",
+      location: "Bay 3",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 90,
+    },
+    {
+      id: "WTT-000108",
+      name: "Oak Rolltop Desk",
+      category: "Furniture",
+      location: "Bay 3",
+      requiresTracking: true,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 72,
+    },
+    {
+      id: "WTT-000109",
+      name: "Art Deco Sideboard",
+      category: "Furniture",
+      location: "Bay 4",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 30,
+    },
+    {
+      id: "WTT-000110",
+      name: "Gaslight Street Lamp",
+      category: "Set Pieces",
+      location: "Back Lot",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 5,
+    },
+    {
+      id: "WTT-000111",
+      name: "Library Book Wall",
+      category: "Set Pieces",
+      location: "Stage B",
+      requiresTracking: true,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 12,
+    },
+    {
+      id: "WTT-000112",
+      name: "Paris Cafe Table",
+      category: "Set Pieces",
+      location: "Stage C",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 18,
+    },
+    {
+      id: "WTT-000113",
+      name: "1940s Trench Coat",
+      category: "Costumes",
+      location: "Wardrobe 1",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 35,
+    },
+    {
+      id: "WTT-000114",
+      name: "Victorian Gown",
+      category: "Costumes",
+      location: "Wardrobe 2",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 20,
+    },
+    {
+      id: "WTT-000115",
+      name: "Pirate Captain Coat",
+      category: "Costumes",
+      location: "Wardrobe 3",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 8,
+    },
+    {
+      id: "WTT-000116",
+      name: "Brass Telescope",
+      category: "Props",
+      location: "Props Cage A",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 3,
+    },
+    {
+      id: "WTT-000117",
+      name: "Antique Compass",
+      category: "Props",
+      location: "Props Cage B",
+      requiresTracking: false,
+      checkedOut: false,
+      updatedAt: now - 1000 * 60 * 60 * 14,
+    },
+    {
+      id: "WTT-000118",
+      name: "Leather Satchel",
+      category: "Props",
+      location: "Props Cage C",
+      requiresTracking: false,
+      checkedOut: true,
+      updatedAt: now - 1000 * 60 * 60 * 40,
+    },
   ];
 };
+
+function readImageAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Unable to read image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const minutes = Math.max(1, Math.round((Date.now() - timestamp) / (1000 * 60)));
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
+function formatDateTime(timestamp: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(timestamp);
+}
+
+function formatDateLabel(value: string): string {
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(parsed);
+}
+
+function FieldWithManage(props: {
+  label: string;
+  value: string;
+  options: string[];
+  placeholder: string;
+  onChange: (value: string) => void;
+  onManage: () => void;
+  optional?: boolean;
+}) {
+  const { label, value, options, placeholder, onChange, onManage, optional } = props;
+
+  return (
+    <div className="form-section">
+      <div className="field-header">
+        <label>{label}</label>
+        <button type="button" className="text-button" onClick={onManage}>
+          Manage
+        </button>
+      </div>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {optional && <option value="">{placeholder}</option>}
+        {!optional && options.length === 0 && <option value="">{placeholder}</option>}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TrackingField(props: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="form-section">
+      <label>Needs to be tracked?</label>
+      <div className="radio-group tracking-group">
+        <label className="choice-card">
+          <input
+            type="radio"
+            name="tracking"
+            checked={props.value}
+            onChange={() => props.onChange(true)}
+          />
+          <span>
+            <strong>Yes, this item needs to be tracked</strong>
+            <small>Staff can check this item in and out as usual.</small>
+          </span>
+        </label>
+        <label className="choice-card">
+          <input
+            type="radio"
+            name="tracking"
+            checked={!props.value}
+            onChange={() => props.onChange(false)}
+          />
+          <span>
+            <strong>No, this item does not need to be tracked</strong>
+            <small>Check In and Check Out will be unavailable for this item.</small>
+          </span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function OptionManagerModal(props: {
+  kind: OptionManagerKind;
+  options: string[];
+  selectedValue: string;
+  onSelectValue: (value: string) => void;
+  onClose: () => void;
+  onOptionsChanged: () => void;
+}) {
+  const [newName, setNewName] = useState("");
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [error, setError] = useState("");
+
+  const label = props.kind === "category" ? "category" : "location";
+  const title = props.kind === "category" ? "Manage Categories" : "Manage Locations";
+
+  const addOption = (name: string): ManageActionResult =>
+    props.kind === "category" ? addCategory(name) : addLocation(name);
+  const renameOption = (currentName: string, nextName: string): ManageActionResult =>
+    props.kind === "category"
+      ? renameCategory(currentName, nextName)
+      : renameLocation(currentName, nextName);
+  const deleteOption = (name: string): ManageActionResult =>
+    props.kind === "category" ? deleteCategory(name) : deleteLocation(name);
+
+  const handleAdd = () => {
+    const result = addOption(newName);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setError("");
+    setNewName("");
+    props.onSelectValue(result.value);
+    props.onOptionsChanged();
+  };
+
+  const handleRename = (currentName: string) => {
+    const result = renameOption(currentName, editingValue);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setError("");
+    setEditingName(null);
+    setEditingValue("");
+    if (props.selectedValue === currentName) {
+      props.onSelectValue(result.value);
+    }
+    props.onOptionsChanged();
+  };
+
+  const handleDelete = (name: string) => {
+    if (!window.confirm(`Delete this ${label}?`)) return;
+
+    const result = deleteOption(name);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setError("");
+    props.onOptionsChanged();
+  };
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={props.onClose}>
+      <div
+        className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button type="button" className="text-button" onClick={props.onClose}>
+            Close
+          </button>
+        </div>
+
+        <p className="helper-text" style={{ marginTop: 0 }}>
+          Add a new {label}, rename an existing one, or remove an unused option.
+        </p>
+
+        <div className="form-section">
+          <label>Add {label}</label>
+          <div className="inline-action-row">
+            <input
+              type="text"
+              value={newName}
+              placeholder={`New ${label} name`}
+              onChange={(event) => setNewName(event.target.value)}
+            />
+            <button type="button" className="btn-primary" onClick={handleAdd}>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <div className="option-list">
+          {props.options.map((option) => {
+            const isEditing = editingName === option;
+
+            return (
+              <div key={option} className="option-row">
+                {!isEditing ? (
+                  <>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{option}</div>
+                      {props.selectedValue === option && (
+                        <div className="helper-text">Currently selected</div>
+                      )}
+                    </div>
+                    <div className="option-actions">
+                      <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={() => {
+                          setEditingName(option);
+                          setEditingValue(option);
+                          setError("");
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={() => handleDelete(option)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={editingValue}
+                      onChange={(event) => setEditingValue(event.target.value)}
+                    />
+                    <div className="option-actions">
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => handleRename(option)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={() => {
+                          setEditingName(null);
+                          setEditingValue("");
+                          setError("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {error && <div className="ui-section inline-message error-message">{error}</div>}
+      </div>
+    </div>
+  );
+}
+
 function InventoryList() {
   const [query, setQuery] = useState("");
   const [refresh, setRefresh] = useState(0);
-  // NEW: filter state for category + checked out
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [checkedOutFilter, setCheckedOutFilter] = useState("All");
   const navigate = useNavigate();
 
-  // NEW: get all items to distinguish empty inventory vs filtered results
   const allItems = useMemo(() => {
     void refresh;
     return getItems();
   }, [refresh]);
 
+  const categories = useMemo(() => {
+    void refresh;
+    return getCategories();
+  }, [refresh]);
+
   const items = useMemo(() => {
-    const all = allItems;
-    const q = query.trim().toLowerCase();
-    return all.filter((it) => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return allItems.filter((item) => {
       const matchesQuery =
-        !q ||
-        it.id.toLowerCase().includes(q) ||
-        it.name.toLowerCase().includes(q) ||
-        it.category.toLowerCase().includes(q);
+        !normalizedQuery ||
+        item.id.toLowerCase().includes(normalizedQuery) ||
+        item.name.toLowerCase().includes(normalizedQuery) ||
+        item.category.toLowerCase().includes(normalizedQuery);
 
       const matchesCategory =
-        categoryFilter === "All" || it.category === categoryFilter;
+        categoryFilter === "All" || item.category === categoryFilter;
 
       const matchesCheckedOut =
         checkedOutFilter === "All" ||
-        (checkedOutFilter === "Available" && !it.checkedOut) ||
-        (checkedOutFilter === "Checked Out" && it.checkedOut);
+        (checkedOutFilter === "Available" && !item.checkedOut) ||
+        (checkedOutFilter === "Checked Out" && item.checkedOut);
 
       return matchesQuery && matchesCategory && matchesCheckedOut;
     });
-  }, [allItems, query, categoryFilter, checkedOutFilter]);
+  }, [allItems, categoryFilter, checkedOutFilter, query]);
 
-  // NEW: reset all filters + search
   const handleClearFilters = () => {
     setQuery("");
     setCategoryFilter("All");
     setCheckedOutFilter("All");
   };
 
-  // NEW: demo controls for seeded data
   const handleLoadDemo = () => {
     setItems(getDemoItems());
-    setRefresh((x) => x + 1);
+    setRefresh((value) => value + 1);
   };
 
   const handleResetDemo = () => {
     clearItems();
-    setRefresh((x) => x + 1);
+    setRefresh((value) => value + 1);
   };
 
   return (
@@ -102,37 +551,24 @@ function InventoryList() {
           type="text"
           placeholder="Search items by ID, name, or category..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
         />
       </div>
 
-      {/* NEW: filters + clear */}
-      <div
-        className="ui-section"
-        style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
-      >
+      <div className="ui-section" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ minWidth: 200 }}>
           <label>Category</label>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
             <option>All</option>
-            <option>Typewriters</option>
-            <option>Cameras</option>
-            <option>Set Pieces</option>
-            <option>Furniture</option>
-            <option>Costumes</option>
-            <option>Props</option>
+            {categories.map((category) => (
+              <option key={category}>{category}</option>
+            ))}
           </select>
         </div>
 
         <div style={{ minWidth: 200 }}>
           <label>Checked Out</label>
-          <select
-            value={checkedOutFilter}
-            onChange={(e) => setCheckedOutFilter(e.target.value)}
-          >
+          <select value={checkedOutFilter} onChange={(event) => setCheckedOutFilter(event.target.value)}>
             <option>All</option>
             <option>Available</option>
             <option>Checked Out</option>
@@ -147,10 +583,7 @@ function InventoryList() {
       </div>
 
       {DEMO_MODE && (
-        <div
-          className="ui-section"
-          style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
-        >
+        <div className="ui-section" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <button className="btn-primary" onClick={handleLoadDemo}>
             Load demo data
           </button>
@@ -161,32 +594,12 @@ function InventoryList() {
       )}
 
       {allItems.length === 0 ? (
-        // NEW: empty state when inventory is empty
-        <div
-          className="ui-section"
-          style={{
-            textAlign: "center",
-            padding: "48px 24px",
-            color: "#4b5563",
-          }}
-        >
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>
-            No inventory items yet. Add your first item to get started.
-          </div>
+        <div className="ui-section empty-state">
+          <div className="empty-state-title">No inventory items yet. Add your first item to get started.</div>
         </div>
       ) : items.length === 0 ? (
-        // NEW: empty state when filters/search yield no results
-        <div
-          className="ui-section"
-          style={{
-            textAlign: "center",
-            padding: "48px 24px",
-            color: "#4b5563",
-          }}
-        >
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>
-            No results match your search or filters.
-          </div>
+        <div className="ui-section empty-state">
+          <div className="empty-state-title">No results match your search or filters.</div>
           <div style={{ marginTop: 12 }}>
             <button className="btn-cancel" onClick={handleClearFilters}>
               Clear filters
@@ -198,23 +611,52 @@ function InventoryList() {
           <table>
             <thead>
               <tr>
+                <th>Image</th>
                 <th>Item ID</th>
                 <th>Item Name</th>
                 <th>Category</th>
+                <th>Tracking</th>
                 <th>Checked Out</th>
+                <th>Loan Info</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((it) => (
+              {items.map((item) => (
                 <tr
-                  key={it.id}
-                  onClick={() => navigate(`/item/${encodeURIComponent(it.id)}`)}
+                  key={item.id}
+                  onClick={() => navigate(`/item/${encodeURIComponent(item.id)}`)}
                   style={{ cursor: "pointer" }}
                 >
-                  <td>{it.id}</td>
-                  <td>{it.name}</td>
-                  <td>{it.category}</td>
-                  <td>{it.checkedOut ? "Yes" : "No"}</td>
+                  <td>
+                    {item.photoDataUrl ? (
+                      <img
+                        src={item.photoDataUrl}
+                        alt={item.name}
+                        className="inventory-thumbnail"
+                      />
+                    ) : (
+                      <div className="inventory-thumbnail inventory-thumbnail-placeholder" aria-label="No image">
+                        No image
+                      </div>
+                    )}
+                  </td>
+                  <td>{item.id}</td>
+                  <td>{item.name}</td>
+                  <td>{item.category}</td>
+                  <td>{item.requiresTracking ? "Tracked" : "Standard"}</td>
+                  <td>{item.checkedOut ? "Yes" : "No"}</td>
+                  <td>
+                    {item.checkedOutAt || item.estimatedReturnDate ? (
+                      <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                        {item.checkedOutAt && <div>Out: {formatDateTime(item.checkedOutAt)}</div>}
+                        {item.estimatedReturnDate && (
+                          <div>Est. return: {formatDateLabel(item.estimatedReturnDate)}</div>
+                        )}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -224,17 +666,46 @@ function InventoryList() {
     </div>
   );
 }
+
 function AddItem() {
   const navigate = useNavigate();
-
+  const [optionsVersion, setOptionsVersion] = useState(0);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Typewriters");
-const [itemLocation, setItemLocation] = useState("");
-  const [condition, setCondition] = useState<"Excellent" | "Good" | "Fair" | "Needs Repair">("Good");
-  const [error, setError] = useState<string>("");
-  // NEW: saving state + timeout ref
+  const [category, setCategory] = useState("");
+  const [itemLocation, setItemLocation] = useState("");
+  const [requiresTracking, setRequiresTracking] = useState(false);
+  const [photoDataUrl, setPhotoDataUrl] = useState("");
+  const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
+  const [managerKind, setManagerKind] = useState<OptionManagerKind | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  const categories = useMemo(() => {
+    void optionsVersion;
+    return getCategories();
+  }, [optionsVersion]);
+
+  const locations = useMemo(() => {
+    void optionsVersion;
+    return getLocations();
+  }, [optionsVersion]);
+
+  useEffect(() => {
+    if (!category && categories.length > 0) {
+      setCategory(categories[0]);
+    } else if (category && !categories.includes(category)) {
+      setCategory(categories[0] ?? "");
+    }
+  }, [categories, category]);
+
+  useEffect(() => {
+    if (itemLocation && !locations.includes(itemLocation)) {
+      setItemLocation("");
+    }
+  }, [itemLocation, locations]);
 
   useEffect(() => {
     return () => {
@@ -244,20 +715,48 @@ const [itemLocation, setItemLocation] = useState("");
     };
   }, []);
 
+  const handlePhotoSelection = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setError("");
+    setIsLoadingPhoto(true);
+
+    try {
+      const dataUrl = await readImageAsDataUrl(file);
+      setPhotoDataUrl(dataUrl);
+    } catch (selectionError: any) {
+      setError(selectionError?.message ?? "Unable to load that image.");
+    } finally {
+      setIsLoadingPhoto(false);
+    }
+  };
+
   const handleSave = () => {
     setError("");
 
     const trimmedName = name.trim();
+    if (!photoDataUrl) {
+      setError("Add a photo before saving this item.");
+      return;
+    }
+
     if (!trimmedName) {
       setError("Item name is required.");
       return;
     }
 
-    // NEW: simulate save latency + disable button
+    if (!category) {
+      setError("Choose a category before saving.");
+      return;
+    }
+
     setIsSaving(true);
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
+
     saveTimerRef.current = setTimeout(() => {
       const id = nextItemId();
 
@@ -265,8 +764,9 @@ const [itemLocation, setItemLocation] = useState("");
         id,
         name: trimmedName,
         category,
-        location: itemLocation.trim() || undefined,
-        condition,
+        location: itemLocation || undefined,
+        photoDataUrl,
+        requiresTracking,
         checkedOut: false,
         updatedAt: Date.now(),
       });
@@ -281,56 +781,124 @@ const [itemLocation, setItemLocation] = useState("");
       <h1>Add Item</h1>
 
       <div className="ui-section">
-        <div className="form-section">
-          <label>Item Name</label>
-          <input
-            type="text"
-            placeholder="e.g., Vintage Typewriter"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        <div className="section-title-row">
+          <div>
+            <h2 style={{ marginBottom: 4 }}>Step 1: Add Photo</h2>
+            <p className="helper-text" style={{ marginTop: 0 }}>
+              Start with a photo, then finish the intake details below.
+            </p>
+          </div>
+          {photoDataUrl && <span className="step-badge complete">Complete</span>}
         </div>
 
-        <div className="form-section">
-          <label>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option>Typewriters</option>
-            <option>Cameras</option>
-            <option>Set Pieces</option>
-            <option>Furniture</option>
-            <option>Costumes</option>
-            <option>Props</option>
-          </select>
+        <div className="photo-actions">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={isLoadingPhoto}
+          >
+            {isLoadingPhoto ? "Loading photo..." : "Take Photo"}
+          </button>
+          <button
+            type="button"
+            className="btn-cancel"
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={isLoadingPhoto}
+          >
+            Upload Photo
+          </button>
         </div>
 
-        <div className="form-section">
-          <label>Location (optional)</label>
-          <input
-            type="text"
-            placeholder="e.g., Aisle 2 / Shelf B"
-            value={itemLocation}
-            onChange={(e) => setItemLocation(e.target.value)}
-          />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={handlePhotoSelection}
+        />
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handlePhotoSelection}
+        />
+
+        {photoDataUrl ? (
+          <div className="photo-preview-card">
+            <img src={photoDataUrl} alt="Item preview" className="photo-preview" />
+            <button type="button" className="text-button" onClick={() => setPhotoDataUrl("")}>
+              Remove photo
+            </button>
+          </div>
+        ) : (
+          <div className="photo-placeholder">
+            <strong>Photo required</strong>
+            <span>Take a photo or upload one to continue with intake.</span>
+          </div>
+        )}
+      </div>
+
+      <div className={`ui-section ${!photoDataUrl ? "details-disabled" : ""}`}>
+        <div className="section-title-row">
+          <div>
+            <h2 style={{ marginBottom: 4 }}>Step 2: Intake Details</h2>
+            <p className="helper-text" style={{ marginTop: 0 }}>
+              Enter the item details after a photo has been added.
+            </p>
+          </div>
+          <span className={`step-badge ${photoDataUrl ? "ready" : ""}`}>
+            {photoDataUrl ? "Ready" : "Locked"}
+          </span>
         </div>
 
-        <div className="form-section">
-          <label>Condition</label>
-          <select value={condition} onChange={(e) => setCondition(e.target.value as any)}>
-            <option value="Excellent">Excellent</option>
-            <option value="Good">Good</option>
-            <option value="Fair">Fair</option>
-            <option value="Needs Repair">Needs Repair</option>
-          </select>
-        </div>
-
-        {error && (
-          <div className="ui-section" style={{ marginTop: 12 }}>
-            {error}
+        {!photoDataUrl && (
+          <div className="ui-section inline-message">
+            Take Photo is the primary step. The rest of the form will unlock after you add an image.
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-          <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+        {photoDataUrl && (
+          <>
+            <div className="form-section">
+              <label>Item Name</label>
+              <input
+                type="text"
+                placeholder="e.g., Vintage Typewriter"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+
+            <FieldWithManage
+              label="Category"
+              value={category}
+              options={categories}
+              placeholder="Choose a category"
+              onChange={setCategory}
+              onManage={() => setManagerKind("category")}
+            />
+
+            <FieldWithManage
+              label="Location (optional)"
+              value={itemLocation}
+              options={locations}
+              placeholder="No location selected"
+              onChange={setItemLocation}
+              onManage={() => setManagerKind("location")}
+              optional
+            />
+
+            <TrackingField value={requiresTracking} onChange={setRequiresTracking} />
+          </>
+        )}
+
+        {error && <div className="ui-section inline-message error-message">{error}</div>}
+
+        <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+          <button className="btn-primary" onClick={handleSave} disabled={isSaving || !photoDataUrl}>
             {isSaving ? "Saving..." : "Save Item"}
           </button>
           <button className="btn-cancel" onClick={() => navigate("/inventory")}>
@@ -338,6 +906,17 @@ const [itemLocation, setItemLocation] = useState("");
           </button>
         </div>
       </div>
+
+      {managerKind && (
+        <OptionManagerModal
+          kind={managerKind}
+          options={managerKind === "category" ? categories : locations}
+          selectedValue={managerKind === "category" ? category : itemLocation}
+          onSelectValue={managerKind === "category" ? setCategory : setItemLocation}
+          onClose={() => setManagerKind(null)}
+          onOptionsChanged={() => setOptionsVersion((value) => value + 1)}
+        />
+      )}
     </div>
   );
 }
@@ -345,48 +924,80 @@ const [itemLocation, setItemLocation] = useState("");
 function ItemDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const routerlocation = useLocation();
+  const routerLocation = useLocation();
   const [refresh, setRefresh] = useState(0);
+  const [optionsVersion, setOptionsVersion] = useState(0);
 
   const item = useMemo(() => {
     void refresh;
     if (!id) return undefined;
-    return getItems().find((x) => x.id === id);
+    return getItems().find((currentItem) => currentItem.id === id);
   }, [id, refresh]);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const categories = useMemo(() => {
+    void optionsVersion;
+    return getCategories();
+  }, [optionsVersion]);
 
-  // Local editable fields
+  const locations = useMemo(() => {
+    void optionsVersion;
+    return getLocations();
+  }, [optionsVersion]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [managerKind, setManagerKind] = useState<OptionManagerKind | null>(null);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Typewriters");
+  const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
-  const [condition, setCondition] = useState<"Excellent" | "Good" | "Fair" | "Needs Repair">("Good");
-  const [error, setError] = useState<string>("");
-  // NEW: saving + success states
+  const [requiresTracking, setRequiresTracking] = useState(false);
+  const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [estimatedReturnDate, setEstimatedReturnDate] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
   }, []);
 
-  // When item loads (or changes), populate edit fields once
   useEffect(() => {
     if (!item) return;
     setName(item.name ?? "");
-    setCategory(item.category ?? "Typewriters");
+    setCategory(item.category ?? categories[0] ?? "");
     setLocation(item.location ?? "");
-    setCondition((item.condition as any) ?? "Good");
-  }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    setRequiresTracking(Boolean(item.requiresTracking));
+  }, [item]);
+
+  useEffect(() => {
+    if (category && !categories.includes(category)) {
+      setCategory(categories[0] ?? "");
+    }
+  }, [category, categories]);
+
+  useEffect(() => {
+    if (location && !locations.includes(location)) {
+      setLocation("");
+    }
+  }, [location, locations]);
+
+  useEffect(() => {
+    if ((routerLocation.state as { saved?: boolean } | null)?.saved) {
+      setSaveSuccess(true);
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = setTimeout(() => {
+        setSaveSuccess(false);
+      }, 2000);
+    }
+  }, [routerLocation.key, routerLocation.state]);
 
   if (!item) {
     return (
@@ -400,56 +1011,74 @@ function ItemDetail() {
   }
 
   const handleToggleCheckout = () => {
-    const confirmMessage = item.checkedOut
-      ? "Mark this item as returned (available)?"
-      : "Mark this item as checked out?";
-    if (!window.confirm(confirmMessage)) {
+    if (item.checkedOut) {
+      if (!window.confirm("Mark this item as returned (available)?")) return;
+      setCheckedOut(item.id, false);
+      setRefresh((value) => value + 1);
       return;
     }
-    setCheckedOut(item.id, !item.checkedOut);
-    setRefresh((x) => x + 1);
+
+    setEstimatedReturnDate(item.estimatedReturnDate ?? "");
+    setCheckoutError("");
+    setShowCheckoutModal(true);
   };
 
-  // NEW: validation + change detection for Save Changes
+  const handleConfirmCheckout = () => {
+    if (!estimatedReturnDate) {
+      setCheckoutError("Estimated return date is required.");
+      return;
+    }
+
+    setCheckedOutStatus(item.id, true, {
+      checkedOutAt: Date.now(),
+      estimatedReturnDate,
+    });
+    setShowCheckoutModal(false);
+    setCheckoutError("");
+    setRefresh((value) => value + 1);
+  };
+
   const normalizedName = name.trim();
-  const normalizedLocation = location.trim();
-  const originalName = (item.name ?? "").trim();
-  const originalLocation = (item.location ?? "").trim();
-  const isNameValid = normalizedName.length > 0;
+  const originalName = item.name.trim();
   const hasChanges =
     normalizedName !== originalName ||
-    category !== (item.category ?? "Typewriters") ||
-    normalizedLocation !== originalLocation ||
-    condition !== ((item.condition as any) ?? "Good");
-  const isSaveDisabled = isSaving || !isNameValid || !hasChanges;
+    category !== item.category ||
+    location !== (item.location ?? "") ||
+    requiresTracking !== Boolean(item.requiresTracking);
+  const isSaveDisabled = isSaving || !normalizedName || !category || !hasChanges;
 
   const handleSaveEdits = () => {
     setError("");
-    if (!isNameValid) {
+
+    if (!normalizedName) {
       setError("Item name is required.");
       return;
     }
 
-    // NEW: simulate save latency + disable button
+    if (!category) {
+      setError("Choose a category before saving.");
+      return;
+    }
+
     setIsSaving(true);
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
+
     saveTimerRef.current = setTimeout(() => {
       upsertItem({
         ...item,
         name: normalizedName,
         category,
-        location: normalizedLocation || undefined,
-        condition,
+        location: location || undefined,
+        requiresTracking,
+        checkedOut: requiresTracking ? item.checkedOut : false,
         updatedAt: Date.now(),
       });
 
       setIsSaving(false);
       setIsEditing(false);
-      setRefresh((x) => x + 1);
-
-      // NEW: show temporary success message
+      setRefresh((value) => value + 1);
       setSaveSuccess(true);
       if (successTimerRef.current) {
         clearTimeout(successTimerRef.current);
@@ -461,106 +1090,119 @@ function ItemDetail() {
   };
 
   const handleCancelEdits = () => {
-    // revert fields
     setName(item.name ?? "");
-    setCategory(item.category ?? "Typewriters");
+    setCategory(item.category ?? categories[0] ?? "");
     setLocation(item.location ?? "");
-    setCondition((item.condition as any) ?? "Good");
+    setRequiresTracking(Boolean(item.requiresTracking));
     setError("");
     setIsEditing(false);
   };
 
-  useEffect(() => {
-    // NEW: show success message when arriving from add flow
-    if ((routerlocation.state as any)?.saved) {
-      setSaveSuccess(true);
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
-      successTimerRef.current = setTimeout(() => {
-        setSaveSuccess(false);
-      }, 2000);
-    }
-  }, [routerlocation.key]);
+  const handleConfirmDelete = () => {
+    deleteItem(item.id);
+    setShowDeleteModal(false);
+    navigate("/inventory");
+  };
+
+  const statusLabel = item.requiresTracking
+    ? item.checkedOut
+      ? "Checked Out"
+      : "Available"
+    : "Non-tracked item"
+    ;
 
   return (
     <div className="container">
       <h1>{isEditing ? "Edit Item" : item.name}</h1>
 
       <div className="ui-section">
-        <p><strong>Item ID:</strong> {item.id}</p>
+        {item.photoDataUrl && (
+          <div className="detail-photo-wrap">
+            <img src={item.photoDataUrl} alt={item.name} className="detail-photo" />
+          </div>
+        )}
+
+        <p>
+          <strong>Item ID:</strong> {item.id}
+        </p>
 
         {!isEditing ? (
           <>
-            <p><strong>Category:</strong> {item.category}</p>
-            <p><strong>Location:</strong> {item.location}</p>
-            <p><strong>Condition:</strong> {item.condition}</p>
             <p>
-              <strong>Status:</strong>{" "}
-              {item.checkedOut ? "Checked Out" : "Available"}
+              <strong>Category:</strong> {item.category}
             </p>
+            <p>
+              <strong>Location:</strong> {item.location || "Not set"}
+            </p>
+            <p>
+              <strong>Tracking:</strong> {item.requiresTracking ? "Yes" : "No"}
+            </p>
+            <p>
+              <strong>Status:</strong> {statusLabel}
+            </p>
+            {item.checkedOutAt && (
+              <p>
+                <strong>Checked Out On:</strong> {formatDateTime(item.checkedOutAt)}
+              </p>
+            )}
+            {item.estimatedReturnDate && (
+              <p>
+                <strong>Estimated Return Date:</strong> {formatDateLabel(item.estimatedReturnDate)}
+              </p>
+            )}
+            <p>
+              <strong>Updated:</strong> {formatRelativeTime(item.updatedAt)}
+            </p>
+            {!item.requiresTracking && (
+              <div className="ui-section inline-message" style={{ marginTop: 16 }}>
+                Check In and Check Out are disabled for non-tracked items.
+              </div>
+            )}
           </>
         ) : (
           <>
             <div className="form-section">
               <label>Item Name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} />
+              <input value={name} onChange={(event) => setName(event.target.value)} />
             </div>
 
-            <div className="form-section">
-              <label>Category</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option>Typewriters</option>
-                <option>Cameras</option>
-                <option>Set Pieces</option>
-                <option>Furniture</option>
-                <option>Costumes</option>
-                <option>Props</option>
-              </select>
-            </div>
+            <FieldWithManage
+              label="Category"
+              value={category}
+              options={categories}
+              placeholder="Choose a category"
+              onChange={setCategory}
+              onManage={() => setManagerKind("category")}
+            />
 
-            <div className="form-section">
-              <label>Location (optional)</label>
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g., Aisle 2 / Shelf B"
-              />
-            </div>
+            <FieldWithManage
+              label="Location (optional)"
+              value={location}
+              options={locations}
+              placeholder="No location selected"
+              onChange={setLocation}
+              onManage={() => setManagerKind("location")}
+              optional
+            />
 
-            <div className="form-section">
-              <label>Condition</label>
-              <select
-                value={condition}
-                onChange={(e) => setCondition(e.target.value as any)}
-              >
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Needs Repair">Needs Repair</option>
-              </select>
-            </div>
+            <TrackingField value={requiresTracking} onChange={setRequiresTracking} />
 
-            {error && (
-              <div className="ui-section" style={{ marginTop: 12 }}>
-                {error}
-              </div>
-            )}
+            {error && <div className="ui-section inline-message error-message">{error}</div>}
           </>
         )}
       </div>
 
-      {saveSuccess && (
-        // NEW: success feedback after save
-        <div className="ui-section" style={{ marginTop: 12 }}>
-          Item saved successfully.
-        </div>
-      )}
+      {saveSuccess && <div className="ui-section inline-message">Item saved successfully.</div>}
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {!isEditing ? (
           <>
-            <button className="btn-primary" onClick={handleToggleCheckout}>
+            <button
+              className="btn-primary"
+              onClick={handleToggleCheckout}
+              disabled={!item.requiresTracking}
+              title={!item.requiresTracking ? "Non-tracked items cannot be checked in or out." : undefined}
+            >
               {item.checkedOut ? "Return Item" : "Check Out Item"}
             </button>
             <button className="btn-cancel" onClick={() => setIsEditing(true)}>
@@ -575,12 +1217,130 @@ function ItemDetail() {
             <button className="btn-primary" onClick={handleSaveEdits} disabled={isSaveDisabled}>
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
+            <button
+              className="btn-cancel"
+              style={{ color: "#b91c1c" }}
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete Item
+            </button>
             <button className="btn-cancel" onClick={handleCancelEdits}>
               Cancel
             </button>
           </>
         )}
       </div>
+
+      {managerKind && (
+        <OptionManagerModal
+          kind={managerKind}
+          options={managerKind === "category" ? categories : locations}
+          selectedValue={managerKind === "category" ? category : location}
+          onSelectValue={managerKind === "category" ? setCategory : setLocation}
+          onClose={() => setManagerKind(null)}
+          onOptionsChanged={() => {
+            setOptionsVersion((value) => value + 1);
+            setRefresh((value) => value + 1);
+          }}
+        />
+      )}
+
+      {showCheckoutModal && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setShowCheckoutModal(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Check out item"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Check Out {item.name}</h2>
+              <button type="button" className="text-button" onClick={() => setShowCheckoutModal(false)}>
+                Close
+              </button>
+            </div>
+
+            <p className="helper-text" style={{ marginTop: 0 }}>
+              Today&apos;s check-out date will be recorded automatically.
+            </p>
+
+            <div className="form-section">
+              <label>Estimated return date</label>
+              <input
+                type="date"
+                value={estimatedReturnDate}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(event) => {
+                  setEstimatedReturnDate(event.target.value);
+                  if (checkoutError) setCheckoutError("");
+                }}
+              />
+            </div>
+
+            {checkoutError && (
+              <div className="ui-section inline-message error-message">{checkoutError}</div>
+            )}
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
+              <button type="button" className="btn-primary" onClick={handleConfirmCheckout}>
+                Confirm Check Out
+              </button>
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  setCheckoutError("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setShowDeleteModal(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete item"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Delete {item.name}?</h2>
+              <button type="button" className="text-button" onClick={() => setShowDeleteModal(false)}>
+                Close
+              </button>
+            </div>
+
+            <p className="helper-text" style={{ marginTop: 0 }}>
+              This action cannot be undone.
+            </p>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ backgroundColor: "#dc2626" }}
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -588,18 +1348,8 @@ function ItemDetail() {
 function Scan() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const [status, setStatus] = useState<
-    "idle" | "starting" | "scanning" | "found" | "error"
-  >("idle");
-  const [message, setMessage] = useState<string>("");
-
-  useEffect(() => {
-    // cleanup on unmount
-    return () => {
-      // nothing to cleanup here because we stop the reader when we start scanning
-    };
-  }, []);
+  const [status, setStatus] = useState<"idle" | "starting" | "scanning" | "found" | "error">("idle");
+  const [message, setMessage] = useState("");
 
   const startScan = async () => {
     setStatus("starting");
@@ -610,46 +1360,38 @@ function Scan() {
       if (!videoEl) throw new Error("Video element not ready");
 
       const reader = new BrowserMultiFormatReader();
-
-      // Prefer back camera on phones (including iPhone)
       const constraints: MediaStreamConstraints = {
         video: { facingMode: { ideal: "environment" } },
         audio: false,
       };
 
-      // This method asks for permission and starts decoding continuously
       setStatus("scanning");
 
       const controls = await reader.decodeFromConstraints(
         constraints,
         videoEl,
-        (result, err, _controls) => {
-          if (result) {
-            const raw = result.getText().trim();
+        (result) => {
+          if (!result) return;
 
-            // Basic validation: expect an ID like WTT-000123
-            if (!raw) return;
+          const raw = result.getText().trim();
+          if (!raw) return;
 
-            setStatus("found");
-            try {
-              navigator.vibrate?.(50);
-            } catch {}
-
-            // Stop scanning before navigating
-            controls.stop();
-
-            navigate(`/item/${encodeURIComponent(raw)}`);
+          setStatus("found");
+          try {
+            navigator.vibrate?.(50);
+          } catch {
+            // no-op
           }
-        }
+
+          controls.stop();
+          navigate(`/item/${encodeURIComponent(raw)}`);
+        },
       );
 
-      // Note: we intentionally do not store controls in state for MVP.
-      // Navigating away stops decoding due to component unmount.
-      // If user stays on page, scanning continues until a code is found.
       void controls;
-    } catch (e: any) {
+    } catch (scanError: any) {
       setStatus("error");
-      setMessage(e?.message ?? "Unable to start camera scan");
+      setMessage(scanError?.message ?? "Unable to start camera scan");
     }
   };
 
@@ -667,30 +1409,16 @@ function Scan() {
         </button>
       )}
 
-      {message && (
-        <div className="ui-section" style={{ marginTop: 12 }}>
-          {message}
-        </div>
-      )}
+      {message && <div className="ui-section inline-message">{message}</div>}
 
       <div className="ui-section" style={{ marginTop: 12 }}>
-        <video
-          ref={videoRef}
-          style={{ width: "100%", borderRadius: 12 }}
-          muted
-          playsInline
-        />
+        <video ref={videoRef} style={{ width: "100%", borderRadius: 12 }} muted playsInline />
         <div style={{ marginTop: 8, opacity: 0.8, fontSize: 12 }}>
-          Tip: if scanning is slow, improve lighting and fill the frame with the
-          QR code.
+          Tip: if scanning is slow, improve lighting and fill the frame with the QR code.
         </div>
       </div>
 
-      <button
-        className="btn-cancel"
-        style={{ marginTop: 12 }}
-        onClick={() => navigate("/inventory")}
-      >
+      <button className="btn-cancel" style={{ marginTop: 12 }} onClick={() => navigate("/inventory")}>
         Back
       </button>
     </div>
@@ -711,9 +1439,6 @@ function TopNav() {
       <NavLink to="/add" style={linkStyle}>
         Add Item
       </NavLink>
-      <NavLink to="/scan" style={linkStyle}>
-        Scan
-      </NavLink>
     </div>
   );
 }
@@ -733,8 +1458,8 @@ export default function App() {
         <Route path="/" element={<Navigate to="/inventory" replace />} />
         <Route path="/inventory" element={<InventoryList />} />
         <Route path="/add" element={<AddItem />} />
-        <Route path="/scan" element={<Scan />} />
         <Route path="/item/:id" element={<ItemDetail />} />
+        <Route path="*" element={<Navigate to="/inventory" replace />} />
       </Routes>
     </BrowserRouter>
   );

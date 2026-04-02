@@ -139,6 +139,11 @@
             background-color: #1d4ed8;
         }
 
+        button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
         /* Table Styles */
         .search-container {
             margin-bottom: 20px;
@@ -258,6 +263,249 @@
 
         .page-btn:hover:not(:disabled) {
             background-color: #f3f4f6;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 16px;
+        }
+
+        .field-header,
+        .section-title-row,
+        .modal-header,
+        .option-row,
+        .inline-action-row,
+        .option-actions,
+        .photo-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .field-header,
+        .section-title-row,
+        .modal-header {
+            justify-content: space-between;
+        }
+
+        .field-header {
+            margin-bottom: 6px;
+        }
+
+        .text-button {
+            border: 0;
+            background: transparent;
+            color: #2563eb;
+            padding: 0;
+        }
+
+        .text-button:hover {
+            border-color: transparent;
+            color: #1d4ed8;
+        }
+
+        .photo-preview-card,
+        .photo-placeholder,
+        .detail-photo-wrap {
+            margin-top: 16px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 16px;
+            background: #f8fafc;
+        }
+
+        .photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: #475569;
+        }
+
+        .photo-preview,
+        .detail-photo {
+            display: block;
+            width: 100%;
+            max-height: 360px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .inventory-thumbnail {
+            display: block;
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #e5e7eb;
+        }
+
+        .inventory-thumbnail-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.2;
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .photo-preview-card .text-button {
+            margin-top: 12px;
+        }
+
+        .details-disabled {
+            opacity: 0.92;
+        }
+
+        .inline-message {
+            margin-top: 16px;
+            margin-bottom: 0;
+            background: #eff6ff;
+            color: #1d4ed8;
+            box-shadow: none;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 74px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .step-badge.ready,
+        .step-badge.complete {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .tracking-group {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-card {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .choice-card span {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .choice-card small {
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .option-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .option-row {
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            flex-wrap: wrap;
+        }
+
+        .option-actions {
+            flex-wrap: wrap;
+        }
+
+        .inline-action-row {
+            align-items: stretch;
+        }
+
+        .inline-action-row input {
+            flex: 1;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        .modal-card {
+            width: min(100%, 640px);
+            max-height: 90vh;
+            overflow: auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #4b5563;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 12px;
+            }
+
+            .ui-section {
+                padding: 16px;
+                margin-bottom: 20px;
+            }
+
+            .field-header,
+            .section-title-row,
+            .modal-header,
+            .option-row,
+            .inline-action-row,
+            .option-actions,
+            .photo-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .modal-backdrop {
+                padding: 12px;
+            }
         }
 
         .page-btn.active {
