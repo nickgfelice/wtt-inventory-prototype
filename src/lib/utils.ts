@@ -41,40 +41,59 @@ export function formatDateLabel(value: string): string {
       );
 }
 
+const SHEETS_CELL_LIMIT = 50_000;
+
 /**
  * Compress an image data URL to fit within Google Sheets cell limits.
- * Resizes to maxWidth and compresses as JPEG at the given quality.
- * Returns a base64 data URL.
+ * Iteratively reduces quality and resolution until the result fits
+ * within the 50,000-character cell limit.
  */
 export function compressImageDataUrl(
   dataUrl: string,
-  maxWidth = 800,
-  quality = 0.7,
+  maxWidth = 400,
+  quality = 0.6,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("Unable to create canvas context."));
         return;
       }
 
-      ctx.drawImage(img, 0, 0, width, height);
-      const compressed = canvas.toDataURL("image/jpeg", quality);
-      resolve(compressed);
+      let currentMaxWidth = maxWidth;
+      let currentQuality = quality;
+
+      for (let attempt = 0; attempt < 6; attempt++) {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > currentMaxWidth) {
+          height = Math.round((height * currentMaxWidth) / width);
+          width = currentMaxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressed = canvas.toDataURL("image/jpeg", currentQuality);
+        if (compressed.length <= SHEETS_CELL_LIMIT) {
+          resolve(compressed);
+          return;
+        }
+
+        currentMaxWidth = Math.round(currentMaxWidth * 0.7);
+        currentQuality = Math.max(0.3, currentQuality - 0.1);
+      }
+
+      // Final attempt at very low settings
+      canvas.width = 150;
+      canvas.height = Math.round((img.height * 150) / img.width);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.3));
     };
     img.onerror = () => reject(new Error("Unable to load image for compression."));
     img.src = dataUrl;
