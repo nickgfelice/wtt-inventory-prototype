@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import wttLogo from "../assets/wtt-logo.jpg";
 
 export default function TopNav() {
   const linkStyle = ({ isActive }: { isActive: boolean }) => ({
@@ -7,13 +8,16 @@ export default function TopNav() {
   });
 
   return (
-    <div className="container" style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-      <NavLink to="/inventory" style={linkStyle}>
-        Inventory
-      </NavLink>
-      <NavLink to="/add" style={linkStyle}>
-        Add Item
-      </NavLink>
+    <div className="container top-nav">
+      <div className="top-nav-links">
+        <NavLink to="/inventory" style={linkStyle}>
+          Inventory
+        </NavLink>
+        <NavLink to="/add" style={linkStyle}>
+          Add Item
+        </NavLink>
+      </div>
+      <img src={wttLogo} alt="Where to Turn" className="top-nav-logo" />
     </div>
   );
 }

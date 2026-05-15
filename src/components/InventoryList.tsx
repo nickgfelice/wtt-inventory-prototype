@@ -103,39 +103,39 @@ export default function InventoryList({
         />
       </div>
 
-      <div
-        className="ui-section"
-        style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
-      >
-        <div style={{ minWidth: 200 }}>
-          <label>Category</label>
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option>All</option>
-            {categories.map((category) => (
-              <option key={category}>{category}</option>
-            ))}
-          </select>
-        </div>
+      <div className="ui-section filter-section">
+        <div className="filter-section-title">Filters</div>
+        <div className="filter-section-controls">
+          <div className="filter-field">
+            <label>Category</label>
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option>All</option>
+              {categories.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
+            </select>
+          </div>
 
-        <div style={{ minWidth: 200 }}>
-          <label>Checked Out</label>
-          <select
-            value={checkedOutFilter}
-            onChange={(event) => setCheckedOutFilter(event.target.value)}
-          >
-            <option>All</option>
-            <option>Available</option>
-            <option>Checked Out</option>
-          </select>
-        </div>
+          <div className="filter-field">
+            <label>Checked Out</label>
+            <select
+              value={checkedOutFilter}
+              onChange={(event) => setCheckedOutFilter(event.target.value)}
+            >
+              <option>All</option>
+              <option>Available</option>
+              <option>Checked Out</option>
+            </select>
+          </div>
 
-        <div style={{ display: "flex", alignItems: "flex-end" }}>
-          <button className="btn btn-cancel" onClick={handleClearFilters}>
-            Clear
-          </button>
+          <div className="filter-clear">
+            <button className="btn btn-cancel" onClick={handleClearFilters}>
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 

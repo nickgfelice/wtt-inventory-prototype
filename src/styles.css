@@ -115,6 +115,25 @@ label {
   margin: 0 auto;
 }
 
+/* Top navigation */
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.top-nav-links {
+  display: flex;
+  gap: 12px;
+}
+
+.top-nav-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
 .ui-section {
   background: white;
   border-radius: 8px;
@@ -257,6 +276,30 @@ button:disabled {
 
 .search-box {
   margin-bottom: 20px;
+}
+
+/* Filter section */
+.filter-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.filter-section-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  min-width: 200px;
+}
+
+.filter-clear {
+  display: flex;
+  align-items: flex-end;
 }
 
 .table-container {
@@ -724,6 +767,10 @@ tbody tr:nth-child(even) {
     padding: 12px;
   }
 
+  .top-nav-logo {
+    height: 28px;
+  }
+
   .ui-section {
     padding: 16px;
     margin-bottom: 20px;
@@ -742,6 +789,24 @@ tbody tr:nth-child(even) {
 
   .modal-backdrop {
     padding: 12px;
+  }
+
+  .filter-section-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .filter-clear {
+    width: 100%;
+  }
+
+  .filter-clear .btn {
+    width: 100%;
   }
 
   .inventory-table-desktop {
