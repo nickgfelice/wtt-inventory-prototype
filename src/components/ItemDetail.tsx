@@ -363,6 +363,30 @@ export default function ItemDetail(props: ItemDetailProps) {
         {!isEditing ? (
           <>
             <p>
+              <strong>Status:</strong> {statusLabel}
+            </p>
+
+            {item.checkedOut && (item.organizationName || item.estimatedReturnDate) && (
+              <div className="checkout-highlight">
+                <div className="checkout-highlight-title">Checkout Details</div>
+                <div className="checkout-highlight-fields">
+                  {item.organizationName && (
+                    <div className="checkout-highlight-field">
+                      <span className="field-label">Organization</span>
+                      <span className="field-value">{item.organizationName}</span>
+                    </div>
+                  )}
+                  {item.estimatedReturnDate && (
+                    <div className="checkout-highlight-field">
+                      <span className="field-label">Estimated Return</span>
+                      <span className="field-value">{formatDateLabel(item.estimatedReturnDate)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <p>
               <strong>Category:</strong> {item.category}
             </p>
             <p>
@@ -376,23 +400,9 @@ export default function ItemDetail(props: ItemDetailProps) {
             <p>
               <strong>Tracking:</strong> {item.requiresTracking ? "Yes" : "No"}
             </p>
-            <p>
-              <strong>Status:</strong> {statusLabel}
-            </p>
-            {item.checkedOut && item.organizationName && (
-              <p>
-                <strong>Checked Out To:</strong> {item.organizationName}
-              </p>
-            )}
             {item.checkedOutAt && (
               <p>
                 <strong>Checked Out On:</strong> {formatDateTime(item.checkedOutAt)}
-              </p>
-            )}
-            {item.estimatedReturnDate && (
-              <p>
-                <strong>Estimated Return Date:</strong>{" "}
-                {formatDateLabel(item.estimatedReturnDate)}
               </p>
             )}
             <p>

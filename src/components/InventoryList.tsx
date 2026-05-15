@@ -173,68 +173,119 @@ export default function InventoryList({
           </div>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Image</th>
-                <th>Item ID</th>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th>Tracking</th>
-                <th>Checked Out</th>
-                <th>Loan Info</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.id}
-                  onClick={() => navigate(`/item/${encodeURIComponent(item.id)}`)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <td>
-                    {item.photoUrl ? (
-                      <img
-                        src={item.photoUrl}
-                        alt={item.name}
-                        className="inventory-thumbnail"
-                      />
-                    ) : (
-                      <div
-                        className="inventory-thumbnail inventory-thumbnail-placeholder"
-                        aria-label="No image"
-                      >
-                        No image
-                      </div>
-                    )}
-                  </td>
-                  <td>{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{item.category}</td>
-                  <td>{item.requiresTracking ? "Tracked" : "Standard"}</td>
-                  <td>{item.checkedOut ? "Yes" : "No"}</td>
-                  <td>
-                    {item.checkedOutAt || item.estimatedReturnDate ? (
-                      <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                        {item.checkedOutAt && (
-                          <div>Out: {formatDateTime(item.checkedOutAt)}</div>
-                        )}
-                        {item.estimatedReturnDate && (
-                          <div>
-                            Est. return: {formatDateLabel(item.estimatedReturnDate)}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="inventory-table-desktop">
+            <table>
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Item ID</th>
+                  <th>Item Name</th>
+                  <th>Category</th>
+                  <th>Tracking</th>
+                  <th>Checked Out</th>
+                  <th>Loan Info</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => navigate(`/item/${encodeURIComponent(item.id)}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td>
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          className="inventory-thumbnail"
+                        />
+                      ) : (
+                        <div
+                          className="inventory-thumbnail inventory-thumbnail-placeholder"
+                          aria-label="No image"
+                        >
+                          No image
+                        </div>
+                      )}
+                    </td>
+                    <td>{item.id}</td>
+                    <td>{item.name}</td>
+                    <td>{item.category}</td>
+                    <td>{item.requiresTracking ? "Tracked" : "Standard"}</td>
+                    <td>{item.checkedOut ? "Yes" : "No"}</td>
+                    <td>
+                      {item.checkedOutAt || item.estimatedReturnDate ? (
+                        <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                          {item.checkedOutAt && (
+                            <div>Out: {formatDateTime(item.checkedOutAt)}</div>
+                          )}
+                          {item.estimatedReturnDate && (
+                            <div>
+                              Est. return: {formatDateLabel(item.estimatedReturnDate)}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card list */}
+          <div className="inventory-cards-mobile">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="inventory-card"
+                onClick={() => navigate(`/item/${encodeURIComponent(item.id)}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/item/${encodeURIComponent(item.id)}`);
+                  }
+                }}
+              >
+                {item.photoUrl ? (
+                  <img
+                    src={item.photoUrl}
+                    alt={item.name}
+                    className="inventory-card-thumbnail"
+                  />
+                ) : (
+                  <div className="inventory-card-thumbnail inventory-thumbnail-placeholder">
+                    No image
+                  </div>
+                )}
+                <div className="inventory-card-body">
+                  <div className="inventory-card-name">{item.name}</div>
+                  <div className="inventory-card-meta">{item.category}</div>
+                  {item.location && (
+                    <div className="inventory-card-meta">{item.location}</div>
+                  )}
+                  <div className="inventory-card-meta">
+                    <span className={item.checkedOut ? "status-yes" : "status-no"}>
+                      {item.checkedOut ? "Checked Out" : "Available"}
+                    </span>
+                  </div>
+                  {item.checkedOut && item.estimatedReturnDate && (
+                    <div className="inventory-card-meta">
+                      Est. return: {formatDateLabel(item.estimatedReturnDate)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
