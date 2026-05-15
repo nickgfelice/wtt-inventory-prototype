@@ -366,7 +366,7 @@ export default function ItemDetail(props: ItemDetailProps) {
               <strong>Status:</strong> {statusLabel}
             </p>
 
-            {item.checkedOut && (item.organizationName || item.estimatedReturnDate) && (
+            {item.checkedOut && (item.organizationName || item.estimatedReturnDate || item.description) && (
               <div className="checkout-highlight">
                 <div className="checkout-highlight-title">Checkout Details</div>
                 <div className="checkout-highlight-fields">
@@ -383,6 +383,12 @@ export default function ItemDetail(props: ItemDetailProps) {
                     </div>
                   )}
                 </div>
+                {item.description && (
+                  <div className="checkout-highlight-description">
+                    <span className="field-label">Description</span>
+                    <span className="field-value">{item.description}</span>
+                  </div>
+                )}
               </div>
             )}
 
