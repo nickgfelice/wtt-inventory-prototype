@@ -129,7 +129,7 @@ label {
 }
 
 .top-nav-logo {
-  height: 36px;
+  height: 56px;
   width: auto;
   object-fit: contain;
 }
@@ -768,7 +768,7 @@ tbody tr:nth-child(even) {
   }
 
   .top-nav-logo {
-    height: 28px;
+    height: 44px;
   }
 
   .ui-section {

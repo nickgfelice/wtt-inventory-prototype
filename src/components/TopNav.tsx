@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import wttLogo from "../assets/wtt-logo.jpg";
+import wttLogo from "../assets/wtt-logo.png";
 
 export default function TopNav() {
   const linkStyle = ({ isActive }: { isActive: boolean }) => ({
