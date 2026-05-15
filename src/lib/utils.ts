@@ -48,11 +48,7 @@ const SHEETS_CELL_LIMIT = 50_000;
  * Iteratively reduces quality and resolution until the result fits
  * within the 50,000-character cell limit.
  */
-export function compressImageDataUrl(
-  dataUrl: string,
-  maxWidth = 400,
-  quality = 0.6,
-): Promise<string> {
+export function compressImageDataUrl(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -63,37 +59,33 @@ export function compressImageDataUrl(
         return;
       }
 
-      let currentMaxWidth = maxWidth;
-      let currentQuality = quality;
+      const widths = [300, 200, 150, 100];
+      const qualities = [0.5, 0.4, 0.3, 0.2];
 
-      for (let attempt = 0; attempt < 6; attempt++) {
-        let width = img.width;
-        let height = img.height;
+      for (const maxW of widths) {
+        for (const q of qualities) {
+          let width = img.width;
+          let height = img.height;
 
-        if (width > currentMaxWidth) {
-          height = Math.round((height * currentMaxWidth) / width);
-          width = currentMaxWidth;
+          if (width > maxW) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressed = canvas.toDataURL("image/jpeg", q);
+          if (compressed.length <= SHEETS_CELL_LIMIT) {
+            resolve(compressed);
+            return;
+          }
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressed = canvas.toDataURL("image/jpeg", currentQuality);
-        if (compressed.length <= SHEETS_CELL_LIMIT) {
-          resolve(compressed);
-          return;
-        }
-
-        currentMaxWidth = Math.round(currentMaxWidth * 0.7);
-        currentQuality = Math.max(0.3, currentQuality - 0.1);
       }
 
-      // Final attempt at very low settings
-      canvas.width = 150;
-      canvas.height = Math.round((img.height * 150) / img.width);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL("image/jpeg", 0.3));
+      // Could not compress below the cell limit — resolve with empty string
+      resolve("");
     };
     img.onerror = () => reject(new Error("Unable to load image for compression."));
     img.src = dataUrl;
