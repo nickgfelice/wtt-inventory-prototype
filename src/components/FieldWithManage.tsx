@@ -14,7 +14,7 @@ export default function FieldWithManage(props: {
       <div className="field-header">
         <label>{label}</label>
         <button type="button" className="text-button" onClick={onManage}>
-          Manage
+          Add / Edit
         </button>
       </div>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
