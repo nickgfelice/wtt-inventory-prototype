@@ -17,6 +17,8 @@ ITEMS_HEADERS = [
     "CheckedOutAt",
     "EstimatedReturnDate",
     "UpdatedAt",
+    "Description",
+    "OrganizationName",
 ]
 
 CATEGORIES_HEADERS = ["Name"]
@@ -34,6 +36,8 @@ _KEY_ORDER = [
     "checkedOutAt",
     "estimatedReturnDate",
     "updatedAt",
+    "description",
+    "organizationName",
 ]
 
 _BOOL_FIELDS = {"requiresTracking", "checkedOut"}

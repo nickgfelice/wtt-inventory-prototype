@@ -19,7 +19,7 @@ try:
 except ImportError:  # pragma: no cover
     HttpError = Exception
 
-ITEMS_RANGE = "Items!A:J"
+ITEMS_RANGE = "Items!A:L"
 
 # ---------------------------------------------------------------------------
 # CORS helpers
@@ -59,7 +59,7 @@ def _ensure_headers(service, sheet_id):
     if not values or all(cell == "" for cell in values[0]):
         service.spreadsheets().values().update(
             spreadsheetId=sheet_id,
-            range="Items!A1:J1",
+            range="Items!A1:L1",
             valueInputOption="RAW",
             body={"values": [ITEMS_HEADERS]},
         ).execute()
@@ -134,6 +134,8 @@ def _handle_post(handler, service, sheet_id):
         "checkedOutAt": body.get("checkedOutAt", ""),
         "estimatedReturnDate": body.get("estimatedReturnDate", ""),
         "updatedAt": now,
+        "description": body.get("description", ""),
+        "organizationName": body.get("organizationName", ""),
     }
 
     row = item_to_row(item)
@@ -197,12 +199,14 @@ def _handle_put(handler, service, sheet_id):
         "checkedOutAt": body.get("checkedOutAt", existing_item.get("checkedOutAt", "")),
         "estimatedReturnDate": body.get("estimatedReturnDate", existing_item.get("estimatedReturnDate", "")),
         "updatedAt": now,
+        "description": body.get("description", existing_item.get("description", "")),
+        "organizationName": body.get("organizationName", existing_item.get("organizationName", "")),
     }
 
     updated_row = item_to_row(updated_item)
     service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
-        range=f"Items!A{target_row_num}:J{target_row_num}",
+        range=f"Items!A{target_row_num}:L{target_row_num}",
         valueInputOption="RAW",
         body={"values": [updated_row]},
     ).execute()

@@ -356,42 +356,38 @@ export default function ItemDetail(props: ItemDetailProps) {
           </div>
         )}
 
+        {!isEditing && item.checkedOut && (item.organizationName || item.estimatedReturnDate || item.description) && (
+          <div className="checkout-highlight">
+            <div className="checkout-highlight-title">Checkout Details</div>
+            <div className="checkout-highlight-fields">
+              {item.organizationName && (
+                <div className="checkout-highlight-field">
+                  <span className="field-label">Organization</span>
+                  <span className="field-value">{item.organizationName}</span>
+                </div>
+              )}
+              {item.estimatedReturnDate && (
+                <div className="checkout-highlight-field">
+                  <span className="field-label">Estimated Return</span>
+                  <span className="field-value">{formatDateLabel(item.estimatedReturnDate)}</span>
+                </div>
+              )}
+            </div>
+            {item.description && (
+              <div className="checkout-highlight-description">
+                <span className="field-label">Description</span>
+                <span className="field-value">{item.description}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <p>
           <strong>Item ID:</strong> {item.id}
         </p>
 
         {!isEditing ? (
           <>
-            <p>
-              <strong>Status:</strong> {statusLabel}
-            </p>
-
-            {item.checkedOut && (item.organizationName || item.estimatedReturnDate || item.description) && (
-              <div className="checkout-highlight">
-                <div className="checkout-highlight-title">Checkout Details</div>
-                <div className="checkout-highlight-fields">
-                  {item.organizationName && (
-                    <div className="checkout-highlight-field">
-                      <span className="field-label">Organization</span>
-                      <span className="field-value">{item.organizationName}</span>
-                    </div>
-                  )}
-                  {item.estimatedReturnDate && (
-                    <div className="checkout-highlight-field">
-                      <span className="field-label">Estimated Return</span>
-                      <span className="field-value">{formatDateLabel(item.estimatedReturnDate)}</span>
-                    </div>
-                  )}
-                </div>
-                {item.description && (
-                  <div className="checkout-highlight-description">
-                    <span className="field-label">Description</span>
-                    <span className="field-value">{item.description}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
             <p>
               <strong>Category:</strong> {item.category}
             </p>
