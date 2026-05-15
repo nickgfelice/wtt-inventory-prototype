@@ -14,7 +14,7 @@ interface ItemDetailProps {
   setCheckedOutStatus: (
     id: string,
     checkedOut: boolean,
-    metadata?: { checkedOutAt?: number; estimatedReturnDate?: string },
+    metadata?: { checkedOutAt?: number; estimatedReturnDate?: string; organizationName?: string },
   ) => Promise<void>;
   setCheckedOut: (id: string, checkedOut: boolean) => Promise<void>;
   categories: string[];
@@ -61,6 +61,7 @@ export default function ItemDetail(props: ItemDetailProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
+  const [description, setDescription] = useState("");
   const [requiresTracking, setRequiresTracking] = useState(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -69,6 +70,7 @@ export default function ItemDetail(props: ItemDetailProps) {
   // Checkout modal state
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [estimatedReturnDate, setEstimatedReturnDate] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -117,6 +119,7 @@ export default function ItemDetail(props: ItemDetailProps) {
     setName(item.name ?? "");
     setCategory(item.category ?? categories[0] ?? "");
     setLocation(item.location ?? "");
+    setDescription(item.description ?? "");
     setRequiresTracking(Boolean(item.requiresTracking));
   }, [item]);
 
@@ -169,10 +172,10 @@ export default function ItemDetail(props: ItemDetailProps) {
             {loadError}
           </div>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <button className="btn-primary" onClick={loadItem}>
+            <button className="btn btn-primary" onClick={loadItem}>
               Retry
             </button>
-            <button className="btn-cancel" onClick={() => navigate("/inventory")}>
+            <button className="btn btn-cancel" onClick={() => navigate("/inventory")}>
               Back to Inventory
             </button>
           </div>
@@ -186,7 +189,7 @@ export default function ItemDetail(props: ItemDetailProps) {
     return (
       <div className="container">
         <h1>Item Not Found</h1>
-        <button className="btn-cancel" onClick={() => navigate("/inventory")}>
+        <button className="btn btn-cancel" onClick={() => navigate("/inventory")}>
           Back to Inventory
         </button>
       </div>
@@ -214,11 +217,17 @@ export default function ItemDetail(props: ItemDetailProps) {
     }
 
     setEstimatedReturnDate(item.estimatedReturnDate ?? "");
+    setOrganizationName("");
     setCheckoutError("");
     setShowCheckoutModal(true);
   };
 
   const handleConfirmCheckout = async () => {
+    if (!organizationName.trim()) {
+      setCheckoutError("Organization name is required.");
+      return;
+    }
+
     if (!estimatedReturnDate) {
       setCheckoutError("Estimated return date is required.");
       return;
@@ -229,6 +238,7 @@ export default function ItemDetail(props: ItemDetailProps) {
       await setCheckedOutStatus(item.id, true, {
         checkedOutAt: Date.now(),
         estimatedReturnDate,
+        organizationName: organizationName.trim(),
       });
       setShowCheckoutModal(false);
       setCheckoutError("");
@@ -250,6 +260,7 @@ export default function ItemDetail(props: ItemDetailProps) {
     normalizedName !== originalName ||
     category !== item.category ||
     location !== (item.location ?? "") ||
+    description !== (item.description ?? "") ||
     requiresTracking !== Boolean(item.requiresTracking);
   const isSaveDisabled = isSaving || !normalizedName || !category || !hasChanges;
 
@@ -274,6 +285,7 @@ export default function ItemDetail(props: ItemDetailProps) {
         name: normalizedName,
         category,
         location: location || undefined,
+        description: description.trim() || undefined,
         requiresTracking,
         checkedOut: requiresTracking ? item.checkedOut : false,
         updatedAt: Date.now(),
@@ -304,6 +316,7 @@ export default function ItemDetail(props: ItemDetailProps) {
     setName(item.name ?? "");
     setCategory(item.category ?? categories[0] ?? "");
     setLocation(item.location ?? "");
+    setDescription(item.description ?? "");
     setRequiresTracking(Boolean(item.requiresTracking));
     setError("");
     setIsEditing(false);
@@ -355,12 +368,22 @@ export default function ItemDetail(props: ItemDetailProps) {
             <p>
               <strong>Location:</strong> {item.location || "Not set"}
             </p>
+            {item.description && (
+              <p>
+                <strong>Description:</strong> {item.description}
+              </p>
+            )}
             <p>
               <strong>Tracking:</strong> {item.requiresTracking ? "Yes" : "No"}
             </p>
             <p>
               <strong>Status:</strong> {statusLabel}
             </p>
+            {item.checkedOut && item.organizationName && (
+              <p>
+                <strong>Checked Out To:</strong> {item.organizationName}
+              </p>
+            )}
             {item.checkedOutAt && (
               <p>
                 <strong>Checked Out On:</strong> {formatDateTime(item.checkedOutAt)}
@@ -409,6 +432,16 @@ export default function ItemDetail(props: ItemDetailProps) {
 
             <TrackingField value={requiresTracking} onChange={setRequiresTracking} />
 
+            <div className="form-section">
+              <label>Description (optional)</label>
+              <textarea
+                placeholder="Add a description for this item..."
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={3}
+              />
+            </div>
+
             {error && (
               <div className="ui-section inline-message error-message">{error}</div>
             )}
@@ -424,11 +457,11 @@ export default function ItemDetail(props: ItemDetailProps) {
         <div className="ui-section inline-message error-message">{error}</div>
       )}
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div className="button-group">
         {!isEditing ? (
           <>
             <button
-              className="btn-primary"
+              className="btn btn-primary"
               onClick={handleToggleCheckout}
               disabled={!item.requiresTracking || isCheckingOut}
               title={
@@ -443,30 +476,30 @@ export default function ItemDetail(props: ItemDetailProps) {
                   ? "Return Item"
                   : "Check Out Item"}
             </button>
-            <button className="btn-cancel" onClick={() => setIsEditing(true)}>
+            <button className="btn btn-cancel" onClick={() => setIsEditing(true)}>
               Edit
             </button>
-            <button className="btn-cancel" onClick={() => navigate("/inventory")}>
+            <button className="btn btn-cancel" onClick={() => navigate("/inventory")}>
               Back
             </button>
           </>
         ) : (
           <>
             <button
-              className="btn-primary"
+              className="btn btn-primary"
               onClick={handleSaveEdits}
               disabled={isSaveDisabled}
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
             <button
-              className="btn-cancel"
+              className="btn btn-cancel"
               style={{ color: "#b91c1c" }}
               onClick={() => setShowDeleteModal(true)}
             >
               Delete Item
             </button>
-            <button className="btn-cancel" onClick={handleCancelEdits}>
+            <button className="btn btn-cancel" onClick={handleCancelEdits}>
               Cancel
             </button>
           </>
@@ -516,7 +549,20 @@ export default function ItemDetail(props: ItemDetailProps) {
             </p>
 
             <div className="form-section">
-              <label>Estimated return date</label>
+              <label className="required">Organization Name</label>
+              <input
+                type="text"
+                placeholder="Enter organization name"
+                value={organizationName}
+                onChange={(event) => {
+                  setOrganizationName(event.target.value);
+                  if (checkoutError) setCheckoutError("");
+                }}
+              />
+            </div>
+
+            <div className="form-section">
+              <label className="required">Estimated return date</label>
               <input
                 type="date"
                 value={estimatedReturnDate}
@@ -534,12 +580,10 @@ export default function ItemDetail(props: ItemDetailProps) {
               </div>
             )}
 
-            <div
-              style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}
-            >
+            <div className="button-group">
               <button
                 type="button"
-                className="btn-primary"
+                className="btn btn-primary"
                 onClick={handleConfirmCheckout}
                 disabled={isCheckingOut}
               >
@@ -547,7 +591,7 @@ export default function ItemDetail(props: ItemDetailProps) {
               </button>
               <button
                 type="button"
-                className="btn-cancel"
+                className="btn btn-cancel"
                 onClick={() => {
                   setShowCheckoutModal(false);
                   setCheckoutError("");
@@ -588,12 +632,10 @@ export default function ItemDetail(props: ItemDetailProps) {
               This action cannot be undone.
             </p>
 
-            <div
-              style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}
-            >
+            <div className="button-group">
               <button
                 type="button"
-                className="btn-primary"
+                className="btn btn-primary"
                 style={{ backgroundColor: "#dc2626" }}
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
@@ -602,7 +644,7 @@ export default function ItemDetail(props: ItemDetailProps) {
               </button>
               <button
                 type="button"
-                className="btn-cancel"
+                className="btn btn-cancel"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel

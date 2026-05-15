@@ -40,6 +40,7 @@ export default function AddItem(props: AddItemProps) {
   const [itemLocation, setItemLocation] = useState("");
   const [requiresTracking, setRequiresTracking] = useState(false);
   const [photoDataUrl, setPhotoDataUrl] = useState("");
+  const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
@@ -113,6 +114,7 @@ export default function AddItem(props: AddItemProps) {
         name: trimmedName,
         category,
         location: itemLocation || undefined,
+        description: description.trim() || undefined,
         photoUrl: compressedUrl,
         requiresTracking,
         checkedOut: false,
@@ -149,7 +151,7 @@ export default function AddItem(props: AddItemProps) {
         <div className="photo-actions">
           <button
             type="button"
-            className="btn-primary"
+            className="btn btn-primary"
             onClick={() => cameraInputRef.current?.click()}
             disabled={isLoadingPhoto}
           >
@@ -157,7 +159,7 @@ export default function AddItem(props: AddItemProps) {
           </button>
           <button
             type="button"
-            className="btn-cancel"
+            className="btn btn-cancel"
             onClick={() => uploadInputRef.current?.click()}
             disabled={isLoadingPhoto}
           >
@@ -247,16 +249,26 @@ export default function AddItem(props: AddItemProps) {
             />
 
             <TrackingField value={requiresTracking} onChange={setRequiresTracking} />
+
+            <div className="form-section">
+              <label>Description (optional)</label>
+              <textarea
+                placeholder="Add a description for this item..."
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={3}
+              />
+            </div>
           </>
         )}
 
         {error && <div className="ui-section inline-message error-message">{error}</div>}
 
-        <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-          <button className="btn-primary" onClick={handleSave} disabled={isSaving || !photoDataUrl}>
+        <div className="button-group">
+          <button className="btn btn-primary" onClick={handleSave} disabled={isSaving || !photoDataUrl}>
             {isSaving ? "Saving..." : "Save Item"}
           </button>
-          <button className="btn-cancel" onClick={() => navigate("/inventory")}>
+          <button className="btn btn-cancel" onClick={() => navigate("/inventory")}>
             Cancel
           </button>
         </div>

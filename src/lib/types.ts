@@ -3,11 +3,13 @@ export type Item = {
   name: string;
   category: string;
   location?: string;
+  description?: string;
   photoUrl: string;
   requiresTracking: boolean;
   checkedOut: boolean;
   checkedOutAt?: number;
   estimatedReturnDate?: string;
+  organizationName?: string;
   updatedAt: number;
 };
 

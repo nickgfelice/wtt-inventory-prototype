@@ -193,7 +193,7 @@ export async function setCheckedOut(
 export async function setCheckedOutStatus(
   id: string,
   checkedOut: boolean,
-  metadata?: { checkedOutAt?: number; estimatedReturnDate?: string },
+  metadata?: { checkedOutAt?: number; estimatedReturnDate?: string; organizationName?: string },
 ): Promise<void> {
   try {
     const payload: Record<string, unknown> = { id, checkedOut };
@@ -202,6 +202,9 @@ export async function setCheckedOutStatus(
     }
     if (metadata?.estimatedReturnDate !== undefined) {
       payload.estimatedReturnDate = metadata.estimatedReturnDate;
+    }
+    if (metadata?.organizationName !== undefined) {
+      payload.organizationName = metadata.organizationName;
     }
 
     const updated = await apiFetch<Item>("/api/items", {

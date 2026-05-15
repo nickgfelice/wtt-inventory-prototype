@@ -328,7 +328,7 @@ export async function setCheckedOut(
 export async function setCheckedOutStatus(
   id: string,
   checkedOut: boolean,
-  metadata?: { checkedOutAt?: number; estimatedReturnDate?: string },
+  metadata?: { checkedOutAt?: number; estimatedReturnDate?: string; organizationName?: string },
 ): Promise<void> {
   const item = items.find((i) => i.id === id);
   if (!item || !item.requiresTracking) return;
@@ -338,6 +338,7 @@ export async function setCheckedOutStatus(
     item.checkedOutAt = metadata?.checkedOutAt ?? Date.now();
     item.estimatedReturnDate =
       metadata?.estimatedReturnDate ?? item.estimatedReturnDate;
+    item.organizationName = metadata?.organizationName ?? item.organizationName;
   }
   item.updatedAt = Date.now();
 }

@@ -108,7 +108,7 @@ export default function OptionManagerModal(props: {
             />
             <button
               type="button"
-              className="btn-primary"
+              className="btn btn-primary"
               onClick={handleAdd}
               disabled={isAdding}
             >
@@ -134,7 +134,7 @@ export default function OptionManagerModal(props: {
                     <div className="option-actions">
                       <button
                         type="button"
-                        className="btn-cancel"
+                        className="btn btn-cancel"
                         disabled={isDeleting !== null}
                         onClick={() => {
                           setEditingName(option);
@@ -146,7 +146,7 @@ export default function OptionManagerModal(props: {
                       </button>
                       <button
                         type="button"
-                        className="btn-cancel"
+                        className="btn btn-cancel"
                         disabled={isDeleting !== null}
                         onClick={() => handleDelete(option)}
                       >
@@ -164,7 +164,7 @@ export default function OptionManagerModal(props: {
                     <div className="option-actions">
                       <button
                         type="button"
-                        className="btn-primary"
+                        className="btn btn-primary"
                         onClick={() => handleRename(option)}
                         disabled={isRenaming}
                       >
@@ -172,7 +172,7 @@ export default function OptionManagerModal(props: {
                       </button>
                       <button
                         type="button"
-                        className="btn-cancel"
+                        className="btn btn-cancel"
                         disabled={isRenaming}
                         onClick={() => {
                           setEditingName(null);

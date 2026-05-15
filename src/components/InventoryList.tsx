@@ -81,7 +81,7 @@ export default function InventoryList({
             {error}
           </div>
           <div>
-            <button className="btn-primary" onClick={onRetry}>
+            <button className="btn btn-primary" onClick={onRetry}>
               Retry
             </button>
           </div>
@@ -133,7 +133,7 @@ export default function InventoryList({
         </div>
 
         <div style={{ display: "flex", alignItems: "flex-end" }}>
-          <button className="btn-cancel" onClick={handleClearFilters}>
+          <button className="btn btn-cancel" onClick={handleClearFilters}>
             Clear
           </button>
         </div>
@@ -145,12 +145,12 @@ export default function InventoryList({
           style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
         >
           {onLoadDemo && (
-            <button className="btn-primary" onClick={onLoadDemo}>
+            <button className="btn btn-primary" onClick={onLoadDemo}>
               Load demo data
             </button>
           )}
           {onResetDemo && (
-            <button className="btn-cancel" onClick={onResetDemo}>
+            <button className="btn btn-cancel" onClick={onResetDemo}>
               Reset demo
             </button>
           )}
@@ -167,7 +167,7 @@ export default function InventoryList({
         <div className="ui-section empty-state">
           <div className="empty-state-title">No results match your search or filters.</div>
           <div style={{ marginTop: 12 }}>
-            <button className="btn-cancel" onClick={handleClearFilters}>
+            <button className="btn btn-cancel" onClick={handleClearFilters}>
               Clear filters
             </button>
           </div>
