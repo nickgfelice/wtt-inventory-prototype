@@ -11,6 +11,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_shared"))
 
 from http.server import BaseHTTPRequestHandler
+from auth import AuthError, require_request_user
 from google_auth import get_sheets_service, get_sheet_id, ConfigError
 from sheets_helpers import ITEMS_HEADERS, item_to_row, row_to_item, next_item_id
 
@@ -282,6 +283,9 @@ def _handle_delete(handler, service, sheet_id):
 class handler(BaseHTTPRequestHandler):
     def _route(self, method):
         try:
+            if method in {"POST", "PUT", "DELETE"}:
+                require_request_user(self)
+
             service = get_sheets_service()
             sheet_id = get_sheet_id()
 
@@ -300,6 +304,8 @@ class handler(BaseHTTPRequestHandler):
 
         except ConfigError as exc:
             _send_json(self, 500, {"error": str(exc)})
+        except AuthError as exc:
+            _send_json(self, exc.status, {"error": str(exc)})
         except HttpError as exc:
             status_code = getattr(getattr(exc, "resp", None), "status", "unknown")
             _send_json(self, 502, {"error": f"Google Sheets service error: {status_code}"})

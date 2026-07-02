@@ -18,3 +18,10 @@ export type OptionManagerKind = "category" | "location";
 export type ManageActionResult =
   | { ok: true; value: string }
   | { ok: false; error: string };
+
+export type AuthUser = {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+};

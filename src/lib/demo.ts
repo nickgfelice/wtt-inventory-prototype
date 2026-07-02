@@ -485,6 +485,7 @@ export async function uploadPhoto(
 }
 
 export async function deletePhoto(_fileId: string): Promise<void> {
+  void _fileId;
   // No-op in demo mode — nothing to clean up
 }
 

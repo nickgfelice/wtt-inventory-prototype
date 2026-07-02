@@ -12,6 +12,7 @@ import json
 import sys
 import os
 import io
+import importlib.util
 
 # Add api directories to path so we can import the handler modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "api"))
@@ -27,6 +28,12 @@ from flask import Flask, request, Response
 import items as items_module
 import categories as categories_module
 import locations as locations_module
+
+_auth_spec = importlib.util.spec_from_file_location(
+    "auth_endpoint", os.path.join(os.path.dirname(__file__), "api", "auth.py")
+)
+auth_module = importlib.util.module_from_spec(_auth_spec)
+_auth_spec.loader.exec_module(auth_module)
 
 app = Flask(__name__)
 
@@ -54,6 +61,7 @@ class FakeHandler:
 def _route_module(module, method):
     """Route a request to the appropriate handler in an API module."""
     from google_auth import ConfigError
+    from auth import AuthError, require_request_user
     try:
         from googleapiclient.errors import HttpError
     except ImportError:
@@ -65,6 +73,9 @@ def _route_module(module, method):
 
     try:
         if module in (items_module, categories_module, locations_module):
+            if method in {"POST", "PUT", "DELETE"}:
+                require_request_user(fake)
+
             from google_auth import get_sheets_service, get_sheet_id
             service = get_sheets_service()
             sheet_id = get_sheet_id()
@@ -96,6 +107,12 @@ def _route_module(module, method):
             status=500,
             content_type="application/json",
         )
+    except AuthError as exc:
+        return Response(
+            json.dumps({"error": str(exc)}),
+            status=exc.status,
+            content_type="application/json",
+        )
     except HttpError as exc:
         code = getattr(getattr(exc, "resp", None), "status", "unknown")
         return Response(
@@ -117,7 +134,44 @@ def _route_module(module, method):
         )
 
 
+def _route_auth(method):
+    """Route a request to the auth endpoint module."""
+    from auth import AuthConfigError, AuthError
+
+    fake = FakeHandler(request)
+
+    try:
+        if method == "GET":
+            status, body = auth_module._handle_get(fake)
+            headers = None
+        elif method == "POST":
+            status, body, headers = auth_module._handle_post(fake)
+        else:
+            status, body, headers = 405, {"error": "Method not allowed"}, None
+
+        return Response(
+            json.dumps(body),
+            status=status,
+            content_type="application/json",
+            headers={"Access-Control-Allow-Origin": "*", **(headers or {})},
+        )
+    except AuthConfigError as exc:
+        return Response(json.dumps({"error": str(exc)}), status=500, content_type="application/json")
+    except AuthError as exc:
+        return Response(json.dumps({"error": str(exc)}), status=exc.status, content_type="application/json")
+    except json.JSONDecodeError:
+        return Response(json.dumps({"error": "Invalid JSON in request body"}), status=400, content_type="application/json")
+    except Exception:
+        return Response(json.dumps({"error": "Internal server error"}), status=500, content_type="application/json")
+
+
 # --- Routes ---
+
+@app.route("/api/auth", methods=["GET", "POST", "OPTIONS"])
+def api_auth():
+    if request.method == "OPTIONS":
+        return Response("", 204, headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type"})
+    return _route_auth(request.method)
 
 @app.route("/api/items", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 def api_items():

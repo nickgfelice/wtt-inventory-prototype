@@ -17,6 +17,7 @@ interface ItemDetailProps {
     metadata?: { checkedOutAt?: number; estimatedReturnDate?: string; organizationName?: string },
   ) => Promise<void>;
   setCheckedOut: (id: string, checkedOut: boolean) => Promise<void>;
+  canManageInventory: boolean;
   categories: string[];
   locations: string[];
   addCategory: (name: string) => Promise<ManageActionResult>;
@@ -35,6 +36,7 @@ export default function ItemDetail(props: ItemDetailProps) {
     deleteItem,
     setCheckedOutStatus,
     setCheckedOut,
+    canManageInventory,
     categories,
     locations,
     addCategory,
@@ -85,6 +87,15 @@ export default function ItemDetail(props: ItemDetailProps) {
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!canManageInventory) {
+      setIsEditing(false);
+      setManagerKind(null);
+      setShowCheckoutModal(false);
+      setShowDeleteModal(false);
+    }
+  }, [canManageInventory]);
 
   // Load item on mount and when id changes
   const loadItem = async () => {
@@ -197,6 +208,11 @@ export default function ItemDetail(props: ItemDetailProps) {
   }
 
   const handleToggleCheckout = async () => {
+    if (!canManageInventory) {
+      setError("Login required to manage inventory.");
+      return;
+    }
+
     if (item.checkedOut) {
       if (!window.confirm("Mark this item as returned (available)?")) return;
 
@@ -267,6 +283,11 @@ export default function ItemDetail(props: ItemDetailProps) {
   const handleSaveEdits = async () => {
     setError("");
 
+    if (!canManageInventory) {
+      setError("Login required to manage inventory.");
+      return;
+    }
+
     if (!normalizedName) {
       setError("Item name is required.");
       return;
@@ -323,6 +344,12 @@ export default function ItemDetail(props: ItemDetailProps) {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canManageInventory) {
+      setError("Login required to manage inventory.");
+      setShowDeleteModal(false);
+      return;
+    }
+
     setIsDeleting(true);
     try {
       await deleteItem(item.id);
@@ -338,12 +365,6 @@ export default function ItemDetail(props: ItemDetailProps) {
       setIsDeleting(false);
     }
   };
-
-  const statusLabel = item.requiresTracking
-    ? item.checkedOut
-      ? "Checked Out"
-      : "Available"
-    : "Non-tracked item";
 
   return (
     <div className="container">
@@ -472,25 +493,33 @@ export default function ItemDetail(props: ItemDetailProps) {
       <div className="button-group">
         {!isEditing ? (
           <>
-            <button
-              className="btn btn-primary"
-              onClick={handleToggleCheckout}
-              disabled={!item.requiresTracking || isCheckingOut}
-              title={
-                !item.requiresTracking
-                  ? "Non-tracked items cannot be checked in or out."
-                  : undefined
-              }
-            >
-              {isCheckingOut
-                ? "Processing..."
-                : item.checkedOut
-                  ? "Return Item"
-                  : "Check Out Item"}
-            </button>
-            <button className="btn btn-cancel" onClick={() => setIsEditing(true)}>
-              Edit
-            </button>
+            {canManageInventory ? (
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleToggleCheckout}
+                  disabled={!item.requiresTracking || isCheckingOut}
+                  title={
+                    !item.requiresTracking
+                      ? "Non-tracked items cannot be checked in or out."
+                      : undefined
+                  }
+                >
+                  {isCheckingOut
+                    ? "Processing..."
+                    : item.checkedOut
+                      ? "Return Item"
+                      : "Check Out Item"}
+                </button>
+                <button className="btn btn-cancel" onClick={() => setIsEditing(true)}>
+                  Edit
+                </button>
+              </>
+            ) : (
+              <button className="btn btn-primary" onClick={() => navigate("/login")}>
+                Staff Login to Manage
+              </button>
+            )}
             <button className="btn btn-cancel" onClick={() => navigate("/inventory")}>
               Back
             </button>
@@ -518,7 +547,7 @@ export default function ItemDetail(props: ItemDetailProps) {
         )}
       </div>
 
-      {managerKind && (
+      {canManageInventory && managerKind && (
         <OptionManagerModal
           kind={managerKind}
           options={managerKind === "category" ? categories : locations}

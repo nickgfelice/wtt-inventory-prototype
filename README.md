@@ -5,6 +5,7 @@ A simple inventory management app for tracking physical items (typewriters, came
 **Frontend:** React + TypeScript + Vite
 **Backend:** Python serverless functions on Vercel
 **Storage:** Google Sheets (inventory data + compressed photos stored as base64)
+**Auth:** Google Sign-In with server-side signed httpOnly session cookies
 
 ## Quick Start (Demo Mode)
 
@@ -92,6 +93,12 @@ npm run dev
 
 Open `http://localhost:5173` and the app will connect to your Google Sheet.
 
+## Staff Login Setup
+
+Inventory viewing is public, but staff must log in to add, edit, delete, manage categories/locations, or check items in and out.
+
+See [`AUTH_SETUP.md`](./AUTH_SETUP.md) for Google OAuth setup, required auth environment variables, local testing, and Vercel deployment notes.
+
 ## Deploy to Vercel
 
 ### Step 1: Push to GitHub
@@ -113,6 +120,11 @@ In the Vercel project settings, go to **Settings > Environment Variables** and a
 |----------|-------|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Full JSON content of the service account key |
 | `GOOGLE_SHEET_ID` | Your spreadsheet ID |
+| `AUTH_SECRET` | Long random string used to sign staff session cookies |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth web client ID for server-side ID token verification |
+| `VITE_GOOGLE_OAUTH_CLIENT_ID` | Same Google OAuth client ID, exposed to the browser for Google Sign-In |
+| `AUTH_ALLOWED_EMAILS` | Comma-separated staff Google account emails allowed to manage inventory |
+| `AUTH_ALLOWED_DOMAIN` | Optional verified email domain allowed to manage inventory |
 
 Do **not** set `VITE_DEMO_MODE` (or set it to `false`).
 

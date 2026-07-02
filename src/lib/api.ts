@@ -38,6 +38,10 @@ function translateStatus(status: number): string {
       return "Bad request";
     case 404:
       return "Item not found";
+    case 401:
+      return "Login required to manage inventory.";
+    case 403:
+      return "You are not authorized to manage inventory.";
     case 500:
       return "Server configuration error. Contact support.";
     case 502:
@@ -50,6 +54,7 @@ function translateStatus(status: number): string {
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...options,
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
   if (!response.ok) {
@@ -393,6 +398,7 @@ export async function uploadPhoto(
 }
 
 export async function deletePhoto(_fileId: string): Promise<void> {
+  void _fileId;
   // No-op — photos are stored inline in the Sheet, deleted with the item.
 }
 
@@ -405,5 +411,6 @@ export async function clearItems(): Promise<void> {
 }
 
 export async function setItems(_items: Item[]): Promise<void> {
+  void _items;
   throw new Error("setItems is not supported in production mode.");
 }

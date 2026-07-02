@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import * as apiClient from "./lib/api";
+import { getCurrentUser, logout } from "./lib/auth";
 import * as demoClient from "./lib/demo";
 import { getDemoItems } from "./lib/demo";
-import type { Item } from "./lib/types";
+import type { AuthUser, Item } from "./lib/types";
 
 import TopNav from "./components/TopNav";
 import InventoryList from "./components/InventoryList";
 import AddItem from "./components/AddItem";
 import ItemDetail from "./components/ItemDetail";
 import Scan from "./components/Scan";
+import Login from "./components/Login";
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 const client = DEMO_MODE ? demoClient : apiClient;
@@ -21,10 +23,35 @@ export default function App() {
   const [locations, setLocations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(!DEMO_MODE);
 
   useEffect(() => {
     loadData();
+    loadAuth();
   }, []);
+
+  const canManageInventory = DEMO_MODE || Boolean(currentUser);
+
+  const loadAuth = async () => {
+    if (DEMO_MODE) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    try {
+      setCurrentUser(await getCurrentUser());
+    } catch {
+      setCurrentUser(null);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setCurrentUser(null);
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -71,9 +98,16 @@ export default function App() {
           </div>
         </div>
       )}
-      <TopNav />
+      <TopNav
+        user={currentUser}
+        canManageInventory={canManageInventory}
+        isAuthLoading={isAuthLoading}
+        isDemoMode={DEMO_MODE}
+        onLogout={handleLogout}
+      />
       <Routes>
         <Route path="/" element={<Navigate to="/inventory" replace />} />
+        <Route path="/login" element={<Login onLogin={setCurrentUser} />} />
         <Route
           path="/inventory"
           element={
@@ -92,46 +126,55 @@ export default function App() {
         <Route
           path="/add"
           element={
-            <AddItem
-              categories={categories}
-              locations={locations}
-              upsertItem={async (item) => {
-                const saved = await client.upsertItem(item);
-                await refreshData();
-                return saved;
-              }}
-              addCategory={async (name) => {
-                const result = await client.addCategory(name);
-                await refreshData();
-                return result;
-              }}
-              renameCategory={async (currentName, newName) => {
-                const result = await client.renameCategory(currentName, newName);
-                await refreshData();
-                return result;
-              }}
-              deleteCategory={async (name) => {
-                const result = await client.deleteCategory(name);
-                await refreshData();
-                return result;
-              }}
-              addLocation={async (name) => {
-                const result = await client.addLocation(name);
-                await refreshData();
-                return result;
-              }}
-              renameLocation={async (currentName, newName) => {
-                const result = await client.renameLocation(currentName, newName);
-                await refreshData();
-                return result;
-              }}
-              deleteLocation={async (name) => {
-                const result = await client.deleteLocation(name);
-                await refreshData();
-                return result;
-              }}
-              onOptionsChanged={refreshData}
-            />
+            isAuthLoading ? (
+              <div className="container">
+                <h1>Add Item</h1>
+                <div className="ui-section">Checking login...</div>
+              </div>
+            ) : canManageInventory ? (
+              <AddItem
+                categories={categories}
+                locations={locations}
+                upsertItem={async (item) => {
+                  const saved = await client.upsertItem(item);
+                  await refreshData();
+                  return saved;
+                }}
+                addCategory={async (name) => {
+                  const result = await client.addCategory(name);
+                  await refreshData();
+                  return result;
+                }}
+                renameCategory={async (currentName, newName) => {
+                  const result = await client.renameCategory(currentName, newName);
+                  await refreshData();
+                  return result;
+                }}
+                deleteCategory={async (name) => {
+                  const result = await client.deleteCategory(name);
+                  await refreshData();
+                  return result;
+                }}
+                addLocation={async (name) => {
+                  const result = await client.addLocation(name);
+                  await refreshData();
+                  return result;
+                }}
+                renameLocation={async (currentName, newName) => {
+                  const result = await client.renameLocation(currentName, newName);
+                  await refreshData();
+                  return result;
+                }}
+                deleteLocation={async (name) => {
+                  const result = await client.deleteLocation(name);
+                  await refreshData();
+                  return result;
+                }}
+                onOptionsChanged={refreshData}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
         <Route
@@ -156,6 +199,7 @@ export default function App() {
                 await client.setCheckedOut(id, checkedOut);
                 await refreshData();
               }}
+              canManageInventory={canManageInventory}
               categories={categories}
               locations={locations}
               addCategory={async (name) => {
