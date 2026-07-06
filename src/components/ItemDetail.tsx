@@ -514,6 +514,13 @@ export default function ItemDetail(props: ItemDetailProps) {
                 <button className="btn btn-cancel" onClick={() => setIsEditing(true)}>
                   Edit
                 </button>
+                <button
+                  className="btn btn-cancel"
+                  style={{ color: "#b91c1c" }}
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Delete
+                </button>
               </>
             ) : (
               <button className="btn btn-primary" onClick={() => navigate("/login")}>

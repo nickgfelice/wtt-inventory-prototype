@@ -30,6 +30,8 @@ export default function InventoryList({
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [checkedOutFilter, setCheckedOutFilter] = useState("All");
   const navigate = useNavigate();
+  const hasActiveFilters =
+    query.trim() !== "" || categoryFilter !== "All" || checkedOutFilter !== "All";
 
   const items = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -132,7 +134,10 @@ export default function InventoryList({
           </div>
 
           <div className="filter-clear">
-            <button className="btn btn-cancel" onClick={handleClearFilters}>
+            <button
+              className={`btn ${hasActiveFilters ? "btn-primary" : "btn-cancel"}`}
+              onClick={handleClearFilters}
+            >
               Clear Filters
             </button>
           </div>
@@ -167,7 +172,7 @@ export default function InventoryList({
         <div className="ui-section empty-state">
           <div className="empty-state-title">No results match your search or filters.</div>
           <div style={{ marginTop: 12 }}>
-            <button className="btn btn-cancel" onClick={handleClearFilters}>
+            <button className="btn btn-primary" onClick={handleClearFilters}>
               Clear filters
             </button>
           </div>

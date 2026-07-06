@@ -38,12 +38,9 @@ export default function TopNav({
         {isDemoMode ? (
           <span className="user-pill">Demo mode</span>
         ) : user ? (
-          <>
-            <span className="user-pill">{user.name || user.email}</span>
-            <button type="button" className="btn btn-cancel nav-logout" onClick={onLogout}>
-              Logout
-            </button>
-          </>
+          <button type="button" className="btn btn-cancel nav-logout" onClick={onLogout}>
+            Logout
+          </button>
         ) : null}
         <img src={wttLogo} alt="Where to Turn" className="top-nav-logo" />
       </div>

@@ -1,19 +1,30 @@
 # Authentication Setup
 
-This app uses Google Sign-In plus a signed, httpOnly session cookie. Public users can view inventory. Only authorized staff can add, edit, delete, manage categories/locations, or check items in and out.
+This app uses a shared admin password plus a signed, httpOnly session cookie. Public users can view inventory. Only logged-in admins can add, edit, delete, manage categories/locations, or check items in and out.
 
-## Google OAuth Client
+## Login Environment Variables
 
-1. Open Google Cloud Console.
-2. Use the same project that has Google Sheets API enabled, or create a new one.
-3. Go to APIs & Services > Credentials.
-4. Create an OAuth Client ID.
-5. Choose Web application.
-6. Add authorized JavaScript origins:
-   - `http://localhost:5173`
-   - Your Vercel production URL, for example `https://your-app.vercel.app`
-   - Any Vercel preview URL you want to test directly
-7. Copy the web client ID.
+Set these variables for local development, Vercel Preview, and Vercel Production:
+
+```env
+AUTH_SECRET=generate-a-long-random-secret-at-least-32-chars
+ADMIN_PASSWORD=choose-a-strong-shared-admin-password
+```
+
+`AUTH_SECRET` signs the session cookie. Use a long random value and keep it private.
+
+`ADMIN_PASSWORD` is checked only on the server. Do not expose it as a `VITE_` variable and do not put it in frontend code.
+
+## Data Environment Variables
+
+The app still uses Google Sheets for inventory data storage. These credentials are for backend data access only; they are not used for user login.
+
+```env
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+GOOGLE_SHEET_ID=your-sheet-id
+```
+
+Share the spreadsheet with the service account email as an Editor. Use separate `GOOGLE_SHEET_ID` values for Preview and Production if you want preview deployments to avoid production data.
 
 ## Local Environment
 
@@ -25,10 +36,7 @@ GOOGLE_SHEET_ID=your-test-sheet-id
 VITE_DEMO_MODE=false
 
 AUTH_SECRET=generate-a-long-random-secret-at-least-32-chars
-GOOGLE_OAUTH_CLIENT_ID=your-google-oauth-web-client-id.apps.googleusercontent.com
-VITE_GOOGLE_OAUTH_CLIENT_ID=your-google-oauth-web-client-id.apps.googleusercontent.com
-AUTH_ALLOWED_EMAILS=authorized.user@example.org
-AUTH_ALLOWED_DOMAIN=
+ADMIN_PASSWORD=choose-a-strong-shared-admin-password
 AUTH_COOKIE_SECURE=false
 ```
 
@@ -53,34 +61,15 @@ Open `http://localhost:5173`.
 Set these Vercel environment variables for Production and Preview:
 
 ```env
+AUTH_SECRET
+ADMIN_PASSWORD
 GOOGLE_SERVICE_ACCOUNT_JSON
 GOOGLE_SHEET_ID
-AUTH_SECRET
-GOOGLE_OAUTH_CLIENT_ID
-VITE_GOOGLE_OAUTH_CLIENT_ID
-AUTH_ALLOWED_EMAILS
-AUTH_ALLOWED_DOMAIN
 ```
 
 Do not set `AUTH_COOKIE_SECURE=false` on Vercel. The app automatically marks cookies secure when running on Vercel.
 
-Use separate `GOOGLE_SHEET_ID` values for Preview and Production if you want preview deployments to avoid production data.
-
-## Authorization Rules
-
-Set `AUTH_ALLOWED_EMAILS` to a comma-separated list for explicit staff access:
-
-```env
-AUTH_ALLOWED_EMAILS=alice@example.org,bob@example.org
-```
-
-Optionally set `AUTH_ALLOWED_DOMAIN` to allow all verified Google accounts from one domain:
-
-```env
-AUTH_ALLOWED_DOMAIN=wheretoturn.org
-```
-
-At least one of `AUTH_ALLOWED_EMAILS` or `AUTH_ALLOWED_DOMAIN` must be set.
+Do not set login-related Google OAuth variables. Google service account credentials are only for Sheets data storage.
 
 ## Testing Checklist
 
@@ -88,6 +77,6 @@ At least one of `AUTH_ALLOWED_EMAILS` or `AUTH_ALLOWED_DOMAIN` must be set.
 2. Try going to `/add` while logged out. You should be sent to staff login.
 3. Open an item while logged out. Edit, delete, and check in/out controls should not be available.
 4. Call a mutating API without cookies. It should return `401`.
-5. Log in with an allowed Google account.
+5. Log in at `/login` with the admin password.
 6. Add, edit, delete, and check in/out should now work.
 7. Log out. Management access should be removed.

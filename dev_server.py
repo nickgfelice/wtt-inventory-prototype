@@ -142,8 +142,7 @@ def _route_auth(method):
 
     try:
         if method == "GET":
-            status, body = auth_module._handle_get(fake)
-            headers = None
+            status, body, headers = auth_module._handle_get_route(fake)
         elif method == "POST":
             status, body, headers = auth_module._handle_post(fake)
         else:
@@ -168,6 +167,9 @@ def _route_auth(method):
 # --- Routes ---
 
 @app.route("/api/auth", methods=["GET", "POST", "OPTIONS"])
+@app.route("/api/auth/login", methods=["POST", "OPTIONS"])
+@app.route("/api/auth/logout", methods=["POST", "OPTIONS"])
+@app.route("/api/auth/me", methods=["GET", "OPTIONS"])
 def api_auth():
     if request.method == "OPTIONS":
         return Response("", 204, headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type"})

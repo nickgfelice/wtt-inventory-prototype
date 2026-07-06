@@ -9,9 +9,6 @@ import time
 from http import cookies
 from typing import Optional
 
-from google.auth.transport import requests
-from google.oauth2 import id_token
-
 
 COOKIE_NAME = "wtt_session"
 SESSION_TTL_SECONDS = 60 * 60 * 8
@@ -47,20 +44,11 @@ def _get_secret() -> bytes:
     return value.encode("utf-8")
 
 
-def _get_google_client_id() -> str:
-    value = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+def _get_admin_password() -> str:
+    value = os.environ.get("ADMIN_PASSWORD", "")
     if not value:
-        raise AuthConfigError("Configuration error: GOOGLE_OAUTH_CLIENT_ID is missing.")
+        raise AuthConfigError("Configuration error: ADMIN_PASSWORD is missing.")
     return value
-
-
-def _allowed_emails() -> set[str]:
-    raw = os.environ.get("AUTH_ALLOWED_EMAILS", "")
-    return {email.strip().lower() for email in raw.split(",") if email.strip()}
-
-
-def _allowed_domain() -> str:
-    return os.environ.get("AUTH_ALLOWED_DOMAIN", "").strip().lower()
 
 
 def _cookie_secure() -> bool:
@@ -79,9 +67,7 @@ def _session_signature(payload_b64: str) -> str:
 def create_session_cookie(user: dict) -> str:
     payload = {
         "sub": user["sub"],
-        "email": user["email"],
         "name": user.get("name", ""),
-        "picture": user.get("picture", ""),
         "exp": int(time.time()) + SESSION_TTL_SECONDS,
     }
     payload_b64 = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
@@ -135,9 +121,7 @@ def parse_cookie_header(header: str) -> Optional[dict]:
         return None
     return {
         "sub": payload.get("sub", ""),
-        "email": payload.get("email", ""),
         "name": payload.get("name", ""),
-        "picture": payload.get("picture", ""),
     }
 
 
@@ -152,39 +136,13 @@ def require_request_user(handler) -> dict:
     return user
 
 
-def verify_google_credential(credential: str) -> dict:
-    if not credential:
-        raise AuthError("Missing Google credential.", 400)
-
-    try:
-        idinfo = id_token.verify_oauth2_token(
-            credential,
-            requests.Request(),
-            _get_google_client_id(),
-        )
-    except ValueError as exc:
-        raise AuthError("Invalid Google credential.", 401) from exc
-
-    email = str(idinfo.get("email", "")).lower()
-    email_verified = bool(idinfo.get("email_verified"))
-    if not email or not email_verified:
-        raise AuthError("Google account email is not verified.", 403)
-
-    allowed_emails = _allowed_emails()
-    allowed_domain = _allowed_domain()
-    email_domain = email.rsplit("@", 1)[-1] if "@" in email else ""
-    if allowed_emails and email not in allowed_emails:
-        raise AuthError("This Google account is not authorized.", 403)
-    if allowed_domain and email_domain != allowed_domain:
-        raise AuthError("This Google account is not authorized.", 403)
-    if not allowed_emails and not allowed_domain:
-        raise AuthConfigError(
-            "Configuration error: set AUTH_ALLOWED_EMAILS or AUTH_ALLOWED_DOMAIN."
-        )
+def verify_admin_password(password: str) -> dict:
+    if not password:
+        raise AuthError("Password is required.", 400)
+    if not hmac.compare_digest(password, _get_admin_password()):
+        raise AuthError("Invalid password.", 401)
 
     return {
-        "sub": idinfo["sub"],
-        "email": email,
-        "name": idinfo.get("name", email),
-        "picture": idinfo.get("picture", ""),
+        "sub": "admin",
+        "name": "Admin",
     }

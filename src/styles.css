@@ -193,10 +193,6 @@ label {
   gap: 16px;
 }
 
-.google-login-button {
-  min-height: 44px;
-}
-
 /* Page titles */
 h1 {
   font-size: 24px;
@@ -529,8 +525,23 @@ tbody tr:nth-child(even) {
   display: block;
   width: 100%;
   max-height: 360px;
-  object-fit: cover;
   border-radius: 12px;
+}
+
+.photo-preview {
+  object-fit: cover;
+}
+
+.detail-photo-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.detail-photo {
+  width: auto;
+  max-width: min(100%, 720px);
+  max-height: 520px;
+  object-fit: contain;
 }
 
 .inventory-thumbnail {
@@ -892,6 +903,11 @@ tbody tr:nth-child(even) {
 
   .filter-clear .btn {
     width: 100%;
+  }
+
+  .detail-photo {
+    width: 100%;
+    max-height: 360px;
   }
 
   .inventory-table-desktop {
