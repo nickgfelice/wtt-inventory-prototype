@@ -12,6 +12,7 @@ interface LoginProps {
 export default function Login({ onLogin }: LoginProps) {
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,15 +45,26 @@ export default function Login({ onLogin }: LoginProps) {
         </p>
         <div className="form-group">
           <label htmlFor="admin-password">Admin password</label>
-          <input
-            id="admin-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-            autoFocus
-          />
+          <div className="password-field">
+            <input
+              id="admin-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              required
+              autoFocus
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword((current) => !current)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
         </div>
         {error && <div className="ui-section inline-message error-message">{error}</div>}
         <button type="submit" className="btn btn-primary" disabled={isLoading}>

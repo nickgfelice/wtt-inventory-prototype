@@ -230,6 +230,33 @@ h1 {
   margin-bottom: 16px;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 76px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.password-toggle:hover,
+.password-toggle:focus {
+  color: #1d4ed8;
+}
+
 .helper-text {
   font-size: 12px;
   color: #6b7280;
